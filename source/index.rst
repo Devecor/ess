@@ -10,6 +10,7 @@ Welcome to vss-cmd's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   guide
 
 
 Indices and tables

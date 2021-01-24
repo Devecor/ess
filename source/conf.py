@@ -22,7 +22,7 @@ copyright = '2021, 蔡正鋒'
 author = '蔡正鋒'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = '1.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,7 +54,12 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'alabaster'
+# html_theme = 'alabaster'
+html_theme = 'karma_sphinx_theme'
+# import sphinx_bernard_theme
+
+# html_theme = "sphinx_bernard_theme"
+# html_theme_path = [sphinx_bernard_theme.get_html_theme_path()]
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

@@ -42,7 +42,9 @@ Path        ``C:\Program Files (x86)\Microsoft Visual SourceSafe``  追加
 
 .. code-block::
 
-    Continuious updating
+    C:\Users\cai.zfeng>ss about
+    'ss' は、内部コマンドまたは外部コマンド、
+    操作可能なプログラムまたはバッチ ファイルとして認識されていません。
 
 
 基本用法

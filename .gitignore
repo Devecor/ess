@@ -1,7 +1,8 @@
 build
-source/_build
+*_build
 test
 dist
 ess.egg-info
+*__pycache__
 .*
 !.gitignore

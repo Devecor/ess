@@ -1,5 +1,7 @@
 build
 source/_build
 test
+dist
+ess.egg-info
 .*
 !.gitignore

@@ -15,7 +15,7 @@ setup(
     license="MIT",
     keywords="ess",
     url="http://vss-cmd.devecor.cn",
-    packages=['tool'],  # 需要打包的目录列表
+    packages=['vsstool', 'vsstool/util'],  # 需要打包的目录列表
 
     # 需要安装的依赖
     install_requires=[
@@ -28,7 +28,7 @@ setup(
     # 添加这个选项，在windows下Python目录的scripts下生成exe文件
     # 注意：模块与函数之间是冒号:
     entry_points={'console_scripts': [
-        'ess = tool.ess:main',
+        'ess = vsstool.ess:main',
     ]},
 
     # classifiers=[  # 程序的所属分类列表

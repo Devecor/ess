@@ -163,10 +163,6 @@ Path        ``C:\Program Files (x86)\Microsoft Visual SourceSafe``  追加
 
 使用快捷键 ``shift + 鼠标右键`` -> 单击 ``PowerShellウインドウをここで開く（S）``
 
-.. tip::
-    常见问题：
-    1. 子目录已经被设定了工作目录
-
 vss常用工作流
 =====================
 

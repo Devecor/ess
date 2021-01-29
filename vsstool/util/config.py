@@ -29,18 +29,15 @@ class UsersConfig(object):
         with open(users_text_path, 'r') as users_text:
             lines = users_text.readlines()
             for i in lines:
-                user_name, user_home = self.__split(i[0:-1])
+                user_name, user_home = self.__split(i.lower()[0:-1])
                 homes[user_name] = user_home
             users_text.close()
 
-        self.__user_home = homes.get(user)
-        self.__parseConfigFile()
+        self.__user_home = homes.get(self.__user_name.lower())
+        self.__parse_config_file()
 
         logging.debug({'user_home': self.__user_home})
         logging.debug({'user_root': self.__root})
-
-    def __split(self, line: str):
-        return re.sub('\\s*=\\s*', '=', line, 1).split('=')
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(UsersConfig, "_instance"):
@@ -49,7 +46,7 @@ class UsersConfig(object):
                     UsersConfig._instance = object.__new__(cls)
         return UsersConfig._instance
 
-    def __parseConfigFile(self):
+    def __parse_config_file(self):
         config_file = self.__ssdir + self.__user_home
         logging.info('parsing {}'.format(config_file))
 
@@ -61,12 +58,17 @@ class UsersConfig(object):
         user_config = configparser.ConfigParser()
         user_config.read_string(file_content)
 
-        self.__root = user_config.get('$/', self.__getDirKey())
+        self.__root = user_config.get('$/', self.__get_dir_key())
 
-        logging.info(self.__root)
+        logging.info({'$/': self.__root})
 
-    def __getDirKey(self):
+    @staticmethod
+    def __get_dir_key():
         return 'Dir ({})'.format(os.environ.get("COMPUTERNAME"))
+
+    @staticmethod
+    def __split(line: str):
+        return re.sub('\\s*=\\s*', '=', line, 1).split('=')
 
     def __str__(self):
         return {'root': self.__root}.__str__()

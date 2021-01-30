@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+from typing import List
 
 
 def getEnv(key: str) -> str:
@@ -30,3 +31,10 @@ def bytes2str(bcode: bytes) -> str:
     except UnicodeDecodeError:
         pass
     return bcode.decode("gbk")
+
+
+def str2int(strl: List[str]):
+    rtval = []
+    for i in strl:
+        rtval.append(int(i))
+    return rtval

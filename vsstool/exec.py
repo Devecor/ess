@@ -1,3 +1,6 @@
+import logging
+from typing import List
+
 from vsstool.util.cmd import mkdir
 from vsstool.util.common import execute_cmd, execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
@@ -33,15 +36,48 @@ def get_dirs(is_recursion=False):
                 mkdir(bytes2str(i[1:]))
 
 
-def checkout_item():
-    pass
+def checkout_file(id: int):
+    if id == -1:
+        execute_cmd("ss checkout *")
+        return
+    files = list_files(visibility=False)
+    if 0 < id <= len(files):
+        execute_cmd("ss checkout {}".format(files[id - 1]))
+    else:
+        logging.warning("id应该是0-{},但是你输入了{}".format(len(files), id))
 
 
-def list_item():
+def checkout_files(*id: int):
+    if len(id) == 1 and id[0] == 0:
+        id_inputted = input_id("checkout")
+        checkout_files(*id_inputted)
+        return
+    for i in id:
+        checkout_file(i)
+
+
+def input_id(action: str) -> List[int]:
+    print("请键入以下id完成{}:".format(action))
+    max = len(list_files())
+    inputted = input("请输入:").split()
+    rtval = []
+    for i in inputted:
+        if 1 <= int(i) <= max:
+            rtval.append(int(i))
+        else:
+            logging.warning("id应该是{min}-{max},但是你输入了{id},将被忽略".format(
+                min="1", max=max, id=i))
+    return rtval
+
+def list_files(visibility=True):
     getdir_cmd = "ss dir"
     res = execute_cmd_with_subprocess(getdir_cmd)
+    files = []
     count = 0
     for i in res.stdout[:-2]:
         if not i.startswith(b"$"):
-            count += 1
-            print("{:<3d} {}".format(count, bytes2str(i)))
+            files.append(bytes2str(i))
+            if visibility:
+                count += 1
+                print("{:<3d} {}".format(count, bytes2str(i)))
+    return files

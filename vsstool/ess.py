@@ -5,6 +5,7 @@ from vsstool import exec
 
 import logging
 
+from vsstool.util.common import str2int
 from vsstool.util.config import varify_cwd
 
 logging.basicConfig(level=logging.DEBUG)
@@ -34,10 +35,13 @@ def parse_cmd(argv: str):
                             const=True, default=False,
                             help="递归取得所有子目录")
 
-    parser_get = subparsers.add_parser("cho", help="checkout")
-    parser_get.set_defaults(exec=checkout_executor)
-    parser_get.add_argument("id", nargs="*", default="0", type=int,
+    parser_cho = subparsers.add_parser("cho", help="checkout")
+    parser_cho.set_defaults(exec=checkout_executor)
+    parser_cho.add_argument("id", nargs="*", default="0", type=int,
                             help="通过序号checkout文件,可指定多个序号")
+    parser_cho.add_argument("-a", "--all", action="store_const",
+                            const=True, default=False,
+                            help="checkout所有文件(仅当前目录)")
 
     if len(argv) <= 1:
         return argparser.parse_args(["-h"])
@@ -52,7 +56,14 @@ def get_executor(args):
 
 
 def checkout_executor(args):
-    exec.checkout_item()
+    if args.all:
+        exec.checkout_files(-1)
+        return
+    if isinstance(args.id, list):
+        args.id = str2int(args.id)
+        exec.checkout_files(*args.id)
+    else:
+        exec.checkout_files(int(args.id))
 
 
 def main(argv=None):
@@ -65,7 +76,7 @@ def main(argv=None):
     elif args.version:
         exec.print_version()
     elif args.list:
-        exec.list_item()
+        exec.list_files()
     elif args.sub_cmd is not None:
         args.exec(args)
 

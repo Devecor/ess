@@ -1,35 +1,47 @@
-import os
-import logging
-from vsstool.util import config
-from vsstool.util.common import getEnv, getUser
+from vsstool.util.cmd import mkdir
+from vsstool.util.common import execute_cmd, execute_cmd_with_subprocess
+from vsstool.util.common import bytes2str
+from vsstool.util.config import getAbsoluteDir
 
 
 def sync_dir():
-    config.UsersConfig().initialize(getEnv('SSDIR'), getUser())
-    user_root = config.UsersConfig().root
-    info = {
-        'cwd': os.getcwd(),
-        'login': os.getlogin(),
-        'cwdb': os.getcwdb(),
-        'pc': os.environ.get("COMPUTERNAME"),
-        'user_conf': user_root
-    }
-
-    logging.debug(info)
-    logging.debug(os.getcwd()[0:len(user_root)])
-
-    if user_root != os.getcwd()[0:len(user_root)]:
-        print('当前目录不在{vss_path}中, 请先进入{vss_path}'.format(vss_path=user_root))
-        return None
-    os.system('ss cp "$/{}"'.format(os.getcwd()[len(user_root):]))
+    cmd = 'ss cp "{dir}"'.format(dir=getAbsoluteDir())
+    execute_cmd(cmd)
+    get_item()
 
 
 def print_version():
     print('ess 0.0.1')
 
 
-def get_files(is_recursion=False):
-    config.UsersConfig().initialize(getEnv('SSDIR'), getUser())
-    user_root = config.UsersConfig().root
-    os.system('ss get "$/{dir}\\*"{is_recursion}'.format(dir=os.getcwd()[len(user_root):],
-                                                         is_recursion=' -r' if is_recursion else ''))
+def get_item(is_recursion=False):
+    cmd = 'ss get "{dir}\\*"{is_recursion}'\
+        .format(dir=getAbsoluteDir(),
+                is_recursion=' -r' if is_recursion else '')
+    execute_cmd(cmd)
+
+
+def get_dirs(is_recursion=False):
+    getdir_cmd = "ss dir{}".format(' -r' if is_recursion else '')
+    res = execute_cmd_with_subprocess(getdir_cmd)
+    for i in res.stdout:
+        if is_recursion:
+            if i.startswith(b"$/") and i.endswith(b":"):
+                mkdir(bytes2str(i[2:-1]))
+        else:
+            if i.startswith(b"$") and not i.endswith(b":"):
+                mkdir(bytes2str(i[1:]))
+
+
+def checkout_item():
+    pass
+
+
+def list_item():
+    getdir_cmd = "ss dir"
+    res = execute_cmd_with_subprocess(getdir_cmd)
+    count = 0
+    for i in res.stdout[:-2]:
+        if not i.startswith(b"$"):
+            count += 1
+            print("{:<3d} {}".format(count, bytes2str(i)))

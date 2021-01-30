@@ -4,6 +4,8 @@ import threading
 import configparser
 import os
 
+from vsstool.util.common import getEnv, getUser
+
 SS_DB_INI = "srcsafe.ini"
 SS_USERS_TEXT = "users.txt"
 
@@ -15,7 +17,7 @@ class UsersConfig(object):
     def __init__(self):
         pass
 
-    def initialize(self, ssdir: str, user: str):
+    def __initialize(self, ssdir=getEnv("SSDIR"), user=getUser()):
 
         '''读取users.txt文件, 取得用户配置目录'''
 
@@ -44,6 +46,7 @@ class UsersConfig(object):
             with UsersConfig._instance_lock:
                 if not hasattr(UsersConfig, "_instance"):
                     UsersConfig._instance = object.__new__(cls)
+                    UsersConfig._instance.__initialize()
         return UsersConfig._instance
 
     def __parse_config_file(self):
@@ -59,8 +62,6 @@ class UsersConfig(object):
         user_config.read_string(file_content)
 
         self.__root = user_config.get('$/', self.__get_dir_key())
-
-        logging.info({'$/': self.__root})
 
     @staticmethod
     def __get_dir_key():
@@ -79,3 +80,15 @@ class UsersConfig(object):
             raise RuntimeError('{} is uninitialized, initialize first please.'
                                .format(self.__class__.__name__))
         return self.__root
+
+
+def varify_cwd():
+    user_root = UsersConfig().root
+    if user_root != os.getcwd()[0:len(user_root)]:
+        print('当前目录不在{vss_path}中, 请先进入{vss_path}'.format(vss_path=user_root))
+        import sys
+        sys.exit()
+
+def getAbsoluteDir():
+    user_root = UsersConfig().root
+    return "$/" + os.getcwd()[len(user_root):]

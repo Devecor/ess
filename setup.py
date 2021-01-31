@@ -1,6 +1,7 @@
 # coding=utf-8
 
 from setuptools import setup
+from vsstool import ess
 
 '''
 the install script for elegant-vss-command-line
@@ -8,10 +9,10 @@ the install script for elegant-vss-command-line
 
 setup(
     name="ess",  #pypi中的名称，pip或者easy_install安装时使用的名称，或生成egg文件的名称
-    version="0.0.1",
+    version=ess.ESS_VERSION,
     author="蔡正鋒",
     author_email="devecor@outlook.com",
-    description=("elegant vss command line"),
+    description=("an elegant command line for vss by cai.zfeng"),
     license="MIT",
     keywords="ess",
     url="http://vss-cmd.devecor.cn",

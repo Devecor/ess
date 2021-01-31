@@ -38,3 +38,6 @@ def str2int(strl: List[str]):
     for i in strl:
         rtval.append(int(i))
     return rtval
+
+def isExist(filename:str) -> bool:
+    return os.path.exists(filename)

@@ -1,10 +1,21 @@
 import logging
-from typing import List
-
+from typing import List, Optional
+from enum import Flag, auto
 from vsstool.util.cmd import mkdir
-from vsstool.util.common import execute_cmd, execute_cmd_with_subprocess
+from vsstool.util.common import execute_cmd, isExist
+from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
+
+
+class CheckSeries(Flag):
+    CHECK_OUT = auto()
+    CHECK_IN = auto()
+    UNDO_CHECK_OUT = auto()
+
+class ListType(Flag):
+    LIST_ALL = auto()
+    LIST_CHECKED_OUT = auto()
 
 
 def sync_dir():
@@ -13,8 +24,8 @@ def sync_dir():
     get_item()
 
 
-def print_version():
-    print('ess 0.0.1')
+def print_version(v: str):
+    print("ess " + v)
 
 
 def get_item(is_recursion=False):
@@ -36,24 +47,22 @@ def get_dirs(is_recursion=False):
                 mkdir(bytes2str(i[1:]))
 
 
-def checkout_file(id: int):
-    if id == -1:
-        execute_cmd("ss checkout *")
-        return
-    files = list_files(visibility=False)
-    if 0 < id <= len(files):
-        execute_cmd("ss checkout {}".format(files[id - 1]))
-    else:
-        logging.warning("id应该是0-{},但是你输入了{}".format(len(files), id))
+def check_series(cmdn: CheckSeries, *id):
+    if cmdn == CheckSeries.CHECK_OUT:
+        operate_files("checkout", *id)
+    elif cmdn == CheckSeries.CHECK_IN:
+        operate_files("checkin", *id)
+    elif cmdn == CheckSeries.UNDO_CHECK_OUT:
+        operate_files("undocheckout", *id)
 
 
-def checkout_files(*id: int):
+def operate_files(operator: str, *id: int):
     if len(id) == 1 and id[0] == 0:
-        id_inputted = input_id("checkout")
-        checkout_files(*id_inputted)
+        id_inputted = input_id(operator)
+        operate_files(operator, *id_inputted)
         return
     for i in id:
-        checkout_file(i)
+        operate_single_file(operator, i)
 
 
 def input_id(action: str) -> List[int]:
@@ -69,15 +78,58 @@ def input_id(action: str) -> List[int]:
                 min="1", max=max, id=i))
     return rtval
 
+
+def operate_single_file(operator, id: int):
+
+    """checkout files
+
+    使用id来签出文件
+
+    Args:
+        operator: "checkout", "checkin", or "undocheckout"
+        id: 0:列出文件id,读取用户输入, 签出相应文件
+            -1:签出所有文件
+            other_id:签出对应文件
+    """
+
+    if id == -1:
+        execute_cmd(f"ss {operator} *")
+        return
+    files = list_files(visibility=False)
+    if 0 < id <= len(files):
+        execute_cmd("ss {operator} {id}".format(operator=operator,
+                                                id=files[id - 1]))
+    else:
+        logging.warning("id应该是0-{},但是你输入了{}".format(len(files), id))
+
+
 def list_files(visibility=True):
-    getdir_cmd = "ss dir"
-    res = execute_cmd_with_subprocess(getdir_cmd)
-    files = []
-    count = 0
-    for i in res.stdout[:-2]:
+    vss_res = execute_cmd_with_subprocess("ss dir")
+    vss_files = file_filter(vss_res.stdout[:-2])
+    if visibility:
+        for i, e in enumerate(vss_files):
+            print("{:<3d} {}".format(i, e))
+    return vss_files
+
+
+def file_filter(files: List[str]):
+    vss_files = []
+    for i in files:
         if not i.startswith(b"$"):
-            files.append(bytes2str(i))
-            if visibility:
-                count += 1
-                print("{:<3d} {}".format(count, bytes2str(i)))
-    return files
+            f = bytes2str(i)
+            if isExist(f):
+                vss_files.append(f)
+            else:    # 为了支持长文件名，这里做个妥协
+                exact_f = get_exact_filename(i)
+                if exact_f is not None:
+                    f = exact_f
+                    vss_files.append(exact_f)
+    return vss_files
+
+
+def get_exact_filename(partyfile: bytes) -> Optional[str]:
+    local_res = execute_cmd_with_subprocess("dir")
+    for i in local_res.stdout:
+        if i.startswith(partyfile):
+            return bytes2str(i)
+    return None

@@ -13,6 +13,7 @@ class CheckSeries(Flag):
     CHECK_IN = auto()
     UNDO_CHECK_OUT = auto()
 
+
 class ListType(Flag):
     LIST_ALL = auto()
     LIST_CHECKED_OUT = auto()
@@ -21,14 +22,14 @@ class ListType(Flag):
 def sync_dir():
     cmd = 'ss cp "{dir}"'.format(dir=getAbsoluteDir())
     execute_cmd(cmd)
-    get_item()
+    get_files()
 
 
 def print_version(v: str):
     print("ess " + v)
 
 
-def get_item(is_recursion=False):
+def get_files(is_recursion=False):
     cmd = 'ss get "{dir}\\*"{is_recursion}'\
         .format(dir=getAbsoluteDir(),
                 is_recursion=' -r' if is_recursion else '')
@@ -66,15 +67,15 @@ def operate_files(operator: str, *id: int):
 
 
 def input_id(action: str) -> List[int]:
-    print("请键入以下id完成{}:".format(action))
+    print("\n 请键入以下id完成{}:".format(action))
     max = len(list_files())
-    inputted = input("请输入:").split()
+    inputted = input(" 请输入:").split()
     rtval = []
     for i in inputted:
         if 1 <= int(i) <= max:
             rtval.append(int(i))
         else:
-            logging.warning("id应该是{min}-{max},但是你输入了{id},将被忽略".format(
+            logging.warning(" id应该是{min}-{max},但是你输入了{id},将被忽略".format(
                 min="1", max=max, id=i))
     return rtval
 
@@ -93,22 +94,26 @@ def operate_single_file(operator, id: int):
     """
 
     if id == -1:
-        execute_cmd(f"ss {operator} *")
+        execute_cmd(f"ss {operator} * -c-")
         return
     files = list_files(visibility=False)
     if 0 < id <= len(files):
-        execute_cmd("ss {operator} {id}".format(operator=operator,
-                                                id=files[id - 1]))
+        execute_cmd("ss {operator} {id} -c-".format(operator=operator,
+                                                    id=files[id - 1]))
     else:
-        logging.warning("id应该是0-{},但是你输入了{}".format(len(files), id))
+        logging.warning(" id应该是0-{},但是你输入了{}".format(len(files), id))
 
 
 def list_files(visibility=True):
     vss_res = execute_cmd_with_subprocess("ss dir")
     vss_files = file_filter(vss_res.stdout[:-2])
     if visibility:
+        print(" ---------------------------------------------------")
+        print(" id  filename")
+        print(" ---------------------------------------------------")
         for i, e in enumerate(vss_files):
-            print("{:<3d} {}".format(i, e))
+            print(" {:<3d} {}".format(i + 1, e))
+        print(" ---------------------------------------------------")
     return vss_files
 
 

@@ -7,12 +7,15 @@ from typing import List
 def getEnv(key: str) -> str:
     return os.environ.get(key)
 
+
 def getUser():
     return os.getlogin()
+
 
 def execute_cmd(cmd: str):
     logging.info(cmd)
     os.system(cmd)
+
 
 def execute_cmd_with_subprocess(cmd: str):
     res = subprocess.run(cmd.split(), capture_output=True)
@@ -20,6 +23,7 @@ def execute_cmd_with_subprocess(cmd: str):
     res.stderr = res.stderr.splitlines()
     logging.info(res)
     return res
+
 
 def bytes2str(bcode: bytes) -> str:
     try:
@@ -39,5 +43,6 @@ def str2int(strl: List[str]):
         rtval.append(int(i))
     return rtval
 
-def isExist(filename:str) -> bool:
+
+def isExist(filename: str) -> bool:
     return os.path.exists(filename)

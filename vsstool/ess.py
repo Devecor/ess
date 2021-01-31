@@ -10,7 +10,8 @@ import logging
 from vsstool.util.common import str2int
 from vsstool.util.config import varify_cwd
 
-ESS_VERSION="0.0.7-beta"
+ESS_VERSION = "0.0.7-beta"
+
 
 def parse_cmd(argv: str) -> argparse.Namespace:
     argparser = argparse.ArgumentParser(
@@ -30,14 +31,14 @@ def parse_cmd(argv: str) -> argparse.Namespace:
     subparsers = argparser.add_subparsers(dest="sub_cmd", help="elegant sub cmd")
 
     parser_get = subparsers.add_parser("get",
-                                       help="从vss上取得最新文件和目录（仅当前目录）")
+                                       help="从vss上取得最新文件（仅当前目录）")
     parser_get.set_defaults(exec=get_executor)
     parser_get.add_argument("-r", action="store_const",
                             const=True, default=False,
                             help="递归执行")
     parser_get.add_argument("-d", action="store_const",
                             const=True, default=False,
-                            help="递归取得所有子目录")
+                            help="从vss上取得子目录（仅当前目录）")
 
     parser_cho = subparsers.add_parser("cho", help="checkout")
     parser_cho.set_defaults(exec=checkout_executor)
@@ -58,10 +59,10 @@ def parse_cmd(argv: str) -> argparse.Namespace:
     parser_ucho = subparsers.add_parser("ucho", help="undocheckout")
     parser_ucho.set_defaults(exec=checkin_executor)
     parser_ucho.add_argument("id", nargs="*", default="0", type=int,
-                            help="通过序号undocheckout文件,可指定多个序号")
+                             help="通过序号undocheckout文件,可指定多个序号")
     parser_ucho.add_argument("-a", "--all", action="store_const",
-                            const=True, default=False,
-                            help="undocheckout所有文件(仅当前目录)")
+                             const=True, default=False,
+                             help="undocheckout所有文件(仅当前目录)")
 
     if len(argv) <= 1:
         return argparser.parse_args(["-h"])
@@ -72,7 +73,7 @@ def get_executor(args):
     if args.d:
         exec.get_dirs(args.r)
         return
-    exec.get_item(args.r)
+    exec.get_files(args.r)
 
 
 def checkout_executor(args):
@@ -103,12 +104,13 @@ def main(argv=None):
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     logging.debug(args)
+    if args.version:
+        exec.print_version(ESS_VERSION)
+        return
     varify_cwd()
 
     if args.sync_dir:
         exec.sync_dir()
-    elif args.version:
-        exec.print_version(ESS_VERSION)
     elif args.list:
         exec.list_files()
     elif args.sub_cmd is not None:

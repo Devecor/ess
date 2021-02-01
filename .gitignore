@@ -5,4 +5,7 @@ dist
 ess.egg-info
 *__pycache__
 .*
+*.png
+*.mp4
+*.gif
 !.gitignore

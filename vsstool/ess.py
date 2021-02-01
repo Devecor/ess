@@ -18,9 +18,9 @@ def parse_cmd(argv: str) -> argparse.Namespace:
         description="here is an elegant command tool for vss by cai.zfeng. enjoy!")
     argparser.add_argument("-v", "--version", action="store_const",
                            const=True, default=False, help="查看当前版本")
-    argparser.add_argument("-s", "--sync-dir", action="store_const",
+    argparser.add_argument("-s", "--sync", action="store_const",
                            const=True, default=False,
-                           help="同步cwd和所有文件（不含子目录）")
+                           help="同步所有文件（不含子目录）")
     argparser.add_argument("-l", "--list", action="store_const",
                            const=True, default=False,
                            help="列出当前目录下的所有文件")
@@ -101,16 +101,19 @@ def check_series_dispatch(args: argparse.Namespace, cmdn: exec.CheckSeries):
 
 def main(argv=None):
     args = parse_cmd(sys.argv if argv is None else argv)
+
     if args.debug:
         logging.basicConfig(level=logging.DEBUG)
     logging.debug(args)
     if args.version:
         exec.print_version(ESS_VERSION)
         return
-    varify_cwd()
 
-    if args.sync_dir:
-        exec.sync_dir()
+    varify_cwd()
+    exec.sync_dir()
+
+    if args.sync:
+        exec.get_files()
     elif args.list:
         exec.list_files()
     elif args.sub_cmd is not None:

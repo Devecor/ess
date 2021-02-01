@@ -84,11 +84,23 @@ class UsersConfig(object):
 
 def varify_cwd():
     user_root = UsersConfig().root
-    if user_root != os.getcwd()[0:len(user_root)]:
+    if user_root != os.getcwd()[:len(user_root)]:
         print('当前目录不在{vss_path}中, 请先进入{vss_path}'.format(vss_path=user_root))
         import sys
         sys.exit()
 
+
 def getAbsoluteDir():
     user_root = UsersConfig().root
-    return "$/" + os.getcwd()[len(user_root):]
+    cwd = os.getcwd()[len(user_root) + 1:]
+    return "$/" + cwd.replace("\\", "/")
+
+
+def absolute2relative(abs: str):
+    pwd = getAbsoluteDir()
+    if pwd == abs[:len(pwd)]:
+        return abs[len(pwd) + 1:]
+    else:
+        logging.info("abs: " + abs)
+        logging.debug("pwd: " + pwd)
+        raise RuntimeError("inner error")

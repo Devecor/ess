@@ -6,6 +6,7 @@ from vsstool.util.common import execute_cmd, isExist
 from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
+from vsstool.util.config import absolute2relative
 
 
 class CheckSeries(Flag):
@@ -22,7 +23,6 @@ class ListType(Flag):
 def sync_dir():
     cmd = 'ss cp "{dir}"'.format(dir=getAbsoluteDir())
     execute_cmd(cmd)
-    get_files()
 
 
 def print_version(v: str):
@@ -42,7 +42,8 @@ def get_dirs(is_recursion=False):
     for i in res.stdout:
         if is_recursion:
             if i.startswith(b"$/") and i.endswith(b":"):
-                mkdir(bytes2str(i[2:-1]))
+                path = absolute2relative(bytes2str(i[:-1]))
+                mkdir(path)
         else:
             if i.startswith(b"$") and not i.endswith(b":"):
                 mkdir(bytes2str(i[1:]))
@@ -117,7 +118,7 @@ def list_files(visibility=True):
     return vss_files
 
 
-def file_filter(files: List[str]):
+def file_filter(files: List[bytes]):
     vss_files = []
     for i in files:
         if not i.startswith(b"$"):

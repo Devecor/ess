@@ -9,8 +9,6 @@
 
 ``shift + 鼠标右键`` -> 单击 ``PowerShellウインドウをここで開く（S）``
 
-3. 键入命令 ``ess -s``
+3. 键入命令 ``ess cho`` , 根据提示键入id号, 用 ``space`` 隔开
 
-4. 键入命令 ``ess cho`` , 根据提示键入id号, 用 ``space`` 隔开
-
-5. 键入 ``ess ucho`` 或者 ``ess ucho id1 id2``
+4. 键入 ``ess ucho`` 或者 ``ess ucho id1 id2``

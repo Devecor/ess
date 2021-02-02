@@ -1,3 +1,18 @@
+``ess`` 简介
+===============
+
+an elegant cmd tool for vss by cai.zfeng
+----------------------------------------------
+
+1. ``ess`` 为反人类的 ``vss`` 文件目录和经常卡死的 ``vss`` 客户端而生
+2. 同时, ``ess`` 也为效率而生, 参考 :ref:`more efficient`
+
+下面是一个使用演示：
+
+.. image:: ../video/checkout.gif
+   :width: 80%
+
+
 .. _getting start:
 
 Geting Start
@@ -14,39 +29,23 @@ Path        ``C:\Program Files (x86)\Microsoft Visual SourceSafe``  追加
 ==========  ======================================================  ========
 
 
-执行第一个指令
------------------
-
-检查配置是否成功:``ss About``
-
-.. code-block::
-
-    C:\Users\cai.zfeng>ss About
-    Microsoft(R) Visual SourceSafe Version 8.0
-    Copyright (C) Microsoft Corporation. All rights reserved.
-    
-    
-    C:\Users\cai.zfeng>
-
-常见问题
+检查配置是否成功
 ------------------
 
-1. 以下 ``SSDIR`` 配置错误，请检查环境变量
+使用 ``ss whoami``
 
 .. code-block::
 
-    C:\Users\cai.zfeng>ss About
-    Visual SourceSafe (VSS) のデータベース 初期化ファイル (srcsafe.ini) が見つかりません。VSS データベースの srcsafe.ini の パスへの SSDIR 環境変数を設定してください。
-    
+    C:\Users\cai.zfeng>ss whoami
+    cai.zfeng
     C:\Users\cai.zfeng>
 
-2. 以下 ``Path`` 追加错误，检查是否与vss安装目录一致
+失败请参考 :ref:`ss whoami`
 
-.. code-block::
+``ess`` 安装
+=======================
 
-    C:\Users\cai.zfeng>ss about
-    'ss' は、内部コマンドまたは外部コマンド、
-    操作可能なプログラムまたはバッチ ファイルとして認識されていません。
+安装请参考用户手册 :ref:`ess install`
 
 .. _more efficient:
 
@@ -69,13 +68,8 @@ Path        ``C:\Program Files (x86)\Microsoft Visual SourceSafe``  追加
 3. 打开命令行快速进入目标目录
 ---------------------------------
 
-* 从window文件浏览器进入目标目录
+* 从window文件浏览器进入目标目录, 执行 ``ess`` 命令
 * ``shift + 鼠标右键`` -> 单击 ``PowerShellウインドウをここで開く（S）``
-
-4. 使用ess
-----------------
-
-查看ess使用文档: :ref:`ess doc`
 
 .. _workflow:
 
@@ -101,8 +95,8 @@ vss常用工作流
 
 ``Continuious updating...``
 
-ss基本用法
-===============
+附录1：ss基本用法
+==================
 
 查看当前目录
 ---------------

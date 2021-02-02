@@ -12,7 +12,7 @@ setup(
     version=ess.ESS_VERSION,
     author="蔡正鋒",
     author_email="devecor@outlook.com",
-    description=("an elegant command line for vss by cai.zfeng"),
+    description=("an elegant cmd tool for vss by cai.zfeng"),
     license="MIT",
     keywords="ess",
     url="http://vss-cmd.devecor.cn",

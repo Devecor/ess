@@ -1,23 +1,38 @@
 import logging
-from typing import List, Optional
+from typing import List, Optional, Callable, Tuple
 from enum import Flag, auto
 from vsstool.util.cmd import mkdir
-from vsstool.util.common import execute_cmd, is_exist
+from vsstool.util.common import execute_cmd, is_exist, get_cwd_files
 from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
 from vsstool.util.config import absolute2relative
 
 
-class CheckSeries(Flag):
+class FileOperation(Flag):
     CHECK_OUT = auto()
     CHECK_IN = auto()
     UNDO_CHECK_OUT = auto()
+    ADD = auto()
 
 
 class ListType(Flag):
     LIST_ALL = auto()
     LIST_CHECKED_OUT = auto()
+
+
+class FilePathContext(object):
+
+    def __init__(self, files_provider: Callable):
+        self.__files = files_provider()
+
+    @property
+    def files(self):
+        return self.__files
+
+    def list_files(self):
+        show_id_view(self.__files)
+        return self.__files
 
 
 def sync_dir():
@@ -49,73 +64,88 @@ def get_dirs(is_recursion=False):
                 mkdir(bytes2str(i[1:]))
 
 
-def check_series(cmdn: CheckSeries, *files_id):
-    if cmdn == CheckSeries.CHECK_OUT:
-        operate_files("checkout", *files_id)
-    elif cmdn == CheckSeries.CHECK_IN:
-        operate_files("checkin", *files_id)
-    elif cmdn == CheckSeries.UNDO_CHECK_OUT:
-        operate_files("undocheckout", *files_id)
+def dispatch_files_operation(operation: FileOperation, *files_id):
+    if operation == FileOperation.CHECK_OUT:
+        operate_files("checkout", FilePathContext(list_files), *files_id)
+    elif operation == FileOperation.CHECK_IN:
+        operate_files("checkin", FilePathContext(list_files), *files_id)
+    elif operation == FileOperation.UNDO_CHECK_OUT:
+        operate_files("undocheckout", FilePathContext(list_files), *files_id)
+    elif operation == FileOperation.ADD:
+        operate_files("add", FilePathContext(get_staged_files), *files_id)
 
 
-def operate_files(operator: str, *files_id: int):
-    if len(files_id) == 1 and files_id[0] == 0:
-        id_inputted = input_id(operator)
-        operate_files(operator, *id_inputted)
+def operate_files(operation: str, context: FilePathContext, *files_id: int):
+
+    """operate files
+
+        使用id来操作文件
+
+        Args:
+            operation: "checkout", "checkin", or "undocheckout"
+            files_id:
+                0:列出可操作id,读取用户输入, 操作相应文件
+                -1:操作所有文件
+                other_id:操作对应文件
+    """
+
+    if len(files_id) == 1:
+        if files_id[0] == 0:
+            id_inputted = input_id(operation, context.list_files)
+            operate_files(operation, context, *id_inputted)
+        elif files_id[0] == -1:
+            operate_files(operation, context,
+                          *[i + 1 for i in range(len(context.files))])
         return
     for i in files_id:
-        operate_single_file(operator, i)
+        operate_single_file(operation, context.files[i - 1])
 
 
-def input_id(action: str) -> List[int]:
+def input_id(action: str, func: Callable) -> List[int]:
+
+    """提示用户输入id
+
+    控制台输出提示信息和备选项, 等待用户输入id(可多选, space隔值)
+
+    Args:
+        action: 用于提示用户的操作名, Example: "add"
+        func: 用于输入选项信息的回调
+
+    Returns:
+        A tuple contains IDs and return value of func
+    """
+
     print("\n 请键入以下id完成{}:".format(action))
-    id_max = len(list_files())
-    inputted = input(" 请输入:").split()
-    rtval = []
+    id_max = len(func())
+    inputted = input(" 请输入: ").split()
+    id_list = []
     for i in inputted:
         if 1 <= int(i) <= id_max:
-            rtval.append(int(i))
+            id_list.append(int(i))
         else:
             logging.warning(" id应该是{min}-{max},但是你输入了{id},将被忽略".format(
                 min="1", max=id_max, id=i))
-    return rtval
+    return id_list
 
 
-def operate_single_file(operator, fileid: int):
-
-    """checkout files
-
-    使用id来操作文件
-
-    Args:
-        operator: "checkout", "checkin", or "undocheckout"
-        fileid: 0:列出文件id,读取用户输入, 操作相应文件
-            -1:操作所有文件
-            other_id:操作对应文件
-    """
-
-    if fileid == -1:
-        execute_cmd(f"ss {operator} * -c-")
-        return
-    files = list_files(visibility=False)
-    if 0 < fileid <= len(files):
-        execute_cmd("ss {operator} \"{id}\" -c-".format(operator=operator,
-                                                        id=files[fileid - 1]))
-    else:
-        logging.warning(" id应该是0-{},但是你输入了{}".format(len(files), fileid))
+def operate_single_file(operator, filename: str):
+    execute_cmd(f"ss {operator} \"{filename}\" -c-")
 
 
-def list_files(visibility=True):
+def list_files():
     vss_res = execute_cmd_with_subprocess("ss dir")
     vss_files = file_filter(vss_res.stdout[:-2])
-    if visibility and len(vss_files) > 0:
-        print(" ---------------------------------------------------")
+    return vss_files
+
+
+def show_id_view(items: List[int]):
+    if items != None and len(items) > 0:
+        print("---------------------------------------------------")
         print(" id  filename")
-        print(" ---------------------------------------------------")
-        for i, e in enumerate(vss_files):
+        print("---------------------------------------------------")
+        for i, e in enumerate(items):
             print(" {:<3d} {}".format(i + 1, e))
         print(" ---------------------------------------------------")
-    return vss_files
 
 
 def file_filter(files: List[bytes]):
@@ -147,3 +177,15 @@ def file_filter(files: List[bytes]):
                 vss_files.append(filename_buffer)
                 filename_buffer = ''
     return vss_files
+
+
+def get_staged_files():
+    vss_files = list_files()
+    local_files = get_cwd_files()
+    logging.debug({"vss_files": vss_files})
+    logging.debug({"local_files": local_files})
+    staged_files = []
+    for f in local_files:
+        if f not in vss_files:
+            staged_files.append(f)
+    return staged_files

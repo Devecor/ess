@@ -82,7 +82,7 @@ class UsersConfig(object):
         return self.__root
 
 
-def varify_cwd():
+def verify_cwd():
     user_root = UsersConfig().root
     if user_root != os.getcwd()[:len(user_root)]:
         print('当前目录不在{vss_path}中, 请先进入{vss_path}'.format(vss_path=user_root))

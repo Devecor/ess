@@ -8,9 +8,9 @@ from vsstool import exec
 import logging
 
 from vsstool.util.common import str2int
-from vsstool.util.config import varify_cwd
+from vsstool.util.config import verify_cwd
 
-ESS_VERSION = "0.0.10-beta"
+ESS_VERSION = "0.0.11-beta"
 
 
 def parse_cmd(argv: str) -> argparse.Namespace:
@@ -64,6 +64,15 @@ def parse_cmd(argv: str) -> argparse.Namespace:
                              const=True, default=False,
                              help="undocheckout所有文件(仅当前目录)")
 
+    parser_add = subparsers.add_parser("add",
+                                       help="add file from local to vss")
+    parser_add.set_defaults(exec=add_executor)
+    parser_add.add_argument("id", nargs="*", default="0", type=int,
+                            help="通过序号add文件,可指定多个序号")
+    parser_add.add_argument("-a", "--all", action="store_const",
+                             const=True, default=False,
+                             help="add所有本地文件(非vss文件)")
+
     if len(argv) <= 1:
         return argparser.parse_args(["-h"])
     return argparser.parse_args(argv[1:])
@@ -76,27 +85,31 @@ def get_executor(args):
     exec.get_files(args.r)
 
 
+def add_executor(args):
+    dispatch_files_cmd(args, exec.FileOperation.ADD)
+
+
 def checkout_executor(args):
-    check_series_dispatch(args, exec.CheckSeries.CHECK_OUT)
+    dispatch_files_cmd(args, exec.FileOperation.CHECK_OUT)
 
 
 def checkin_executor(args):
-    check_series_dispatch(args, exec.CheckSeries.CHECK_IN)
+    dispatch_files_cmd(args, exec.FileOperation.CHECK_IN)
 
 
 def undocheckout_executor(args):
-    check_series_dispatch(args, exec.CheckSeries.UNDO_CHECK_OUT)
+    dispatch_files_cmd(args, exec.FileOperation.UNDO_CHECK_OUT)
 
 
-def check_series_dispatch(args: argparse.Namespace, cmdn: exec.CheckSeries):
+def dispatch_files_cmd(args: argparse.Namespace, operation: exec.FileOperation):
     if args.all:
-        exec.check_series(cmdn, -1)
+        exec.dispatch_files_operation(operation, -1)
         return
     if isinstance(args.id, list):
         args.id = str2int(args.id)
-        exec.check_series(cmdn, *args.id)
+        exec.dispatch_files_operation(operation, *args.id)
     else:
-        exec.check_series(cmdn, int(args.id))
+        exec.dispatch_files_operation(operation, int(args.id))
 
 
 def main(argv=None):
@@ -109,7 +122,7 @@ def main(argv=None):
         exec.print_version(ESS_VERSION)
         return
 
-    varify_cwd()
+    verify_cwd()
     exec.sync_dir()
 
     if args.sync:

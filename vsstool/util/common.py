@@ -47,3 +47,12 @@ def str2int(strl: List[str]):
 
 def is_exist(filename: str) -> bool:
     return os.path.exists(filename)
+
+
+def get_cwd_files():
+    current_dirs = os.listdir()
+    files = []
+    for i in current_dirs:
+        if os.path.isfile(i):
+            files.append(i)
+    return files

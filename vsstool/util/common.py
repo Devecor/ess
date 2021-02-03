@@ -4,11 +4,11 @@ import subprocess
 from typing import List
 
 
-def getEnv(key: str) -> str:
+def get_env(key: str) -> str:
     return os.environ.get(key)
 
 
-def getUser():
+def get_user():
     return os.getlogin()
 
 
@@ -45,5 +45,5 @@ def str2int(strl: List[str]):
     return rtval
 
 
-def isExist(filename: str) -> bool:
+def is_exist(filename: str) -> bool:
     return os.path.exists(filename)

@@ -10,7 +10,7 @@ import logging
 from vsstool.util.common import str2int
 from vsstool.util.config import varify_cwd
 
-ESS_VERSION = "0.0.9-beta"
+ESS_VERSION = "0.0.10-beta"
 
 
 def parse_cmd(argv: str) -> argparse.Namespace:

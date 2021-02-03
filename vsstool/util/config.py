@@ -4,7 +4,7 @@ import threading
 import configparser
 import os
 
-from vsstool.util.common import getEnv, getUser
+from vsstool.util.common import get_env, get_user
 
 SS_DB_INI = "srcsafe.ini"
 SS_USERS_TEXT = "users.txt"
@@ -17,7 +17,7 @@ class UsersConfig(object):
     def __init__(self):
         pass
 
-    def __initialize(self, ssdir=getEnv("SSDIR"), user=getUser()):
+    def __initialize(self, ssdir=get_env("SSDIR"), user=get_user()):
 
         '''读取users.txt文件, 取得用户配置目录'''
 

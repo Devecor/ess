@@ -54,11 +54,23 @@ def get_files(is_recursion=False):
 def get_dirs(is_recursion=False):
     cmd = "ss dir{}".format(' -r' if is_recursion else '')
     res = execute_cmd_with_subprocess(cmd)
+    dir_buffer = b""
+    dir_flag = b""
     for i in res.stdout:
         if is_recursion:
-            if i.startswith(b"$/") and i.endswith(b":"):
-                path = absolute2relative(bytes2str(i[:-1]))
+            if i.startswith(b"$/"):
+                dir_buffer += i
+                dir_flag += b"$/"
+            else:
+                if dir_buffer != b"":
+                    dir_buffer += i
+            if i.endswith(b":"):
+                dir_flag += b":"
+
+            if dir_flag == b"$/:":
+                path = absolute2relative(bytes2str(dir_buffer[:-1]))
                 mkdir(path)
+                dir_buffer = ""
         else:
             if i.startswith(b"$") and not i.endswith(b":"):
                 mkdir(bytes2str(i[1:]))
@@ -87,16 +99,18 @@ def operate_files(operation: str, context: FilePathContext, *files_id: int):
                 0:列出可操作id,读取用户输入, 操作相应文件
                 -1:操作所有文件
                 other_id:操作对应文件
+            context: FilePathContext对象
     """
 
     if len(files_id) == 1:
         if files_id[0] == 0:
             id_inputted = input_id(operation, context.list_files)
             operate_files(operation, context, *id_inputted)
+            return
         elif files_id[0] == -1:
             operate_files(operation, context,
                           *[i + 1 for i in range(len(context.files))])
-        return
+            return
     for i in files_id:
         operate_single_file(operation, context.files[i - 1])
 
@@ -139,7 +153,7 @@ def list_files():
 
 
 def show_id_view(items: List[int]):
-    if items != None and len(items) > 0:
+    if items is not None and len(items) > 0:
         print("---------------------------------------------------")
         print(" id  filename")
         print("---------------------------------------------------")

@@ -70,8 +70,8 @@ def parse_cmd(argv: str) -> argparse.Namespace:
     parser_add.add_argument("id", nargs="*", default="0", type=int,
                             help="通过序号add文件,可指定多个序号")
     parser_add.add_argument("-a", "--all", action="store_const",
-                             const=True, default=False,
-                             help="add所有本地文件(非vss文件)")
+                            const=True, default=False,
+                            help="add所有本地文件(非vss文件)")
 
     if len(argv) <= 1:
         return argparser.parse_args(["-h"])
@@ -128,7 +128,7 @@ def main(argv=None):
     if args.sync:
         exec.get_files()
     elif args.list:
-        exec.list_files()
+        exec.show_id_view(exec.list_files())
     elif args.sub_cmd is not None:
         args.exec(args)
 

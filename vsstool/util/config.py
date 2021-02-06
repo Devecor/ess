@@ -2,8 +2,8 @@ import logging
 import re
 import threading
 import configparser
-import os
 
+from vsstool.util.cmd import getcwd
 from vsstool.util.common import get_env, get_user
 
 SS_DB_INI = "srcsafe.ini"
@@ -65,7 +65,7 @@ class UsersConfig(object):
 
     @staticmethod
     def __get_dir_key():
-        return 'Dir ({})'.format(os.environ.get("COMPUTERNAME"))
+        return 'Dir ({})'.format(get_env("COMPUTERNAME"))
 
     @staticmethod
     def __split(line: str):
@@ -84,7 +84,7 @@ class UsersConfig(object):
 
 def verify_cwd():
     user_root = UsersConfig().root
-    if user_root != os.getcwd()[:len(user_root)]:
+    if user_root != getcwd()[:len(user_root)]:
         print('当前目录不在{vss_path}中, 请先进入{vss_path}'.format(vss_path=user_root))
         import sys
         sys.exit()
@@ -92,7 +92,7 @@ def verify_cwd():
 
 def getAbsoluteDir():
     user_root = UsersConfig().root
-    cwd = os.getcwd()[len(user_root) + 1:]
+    cwd = getcwd()[len(user_root) + 1:]
     return "$/" + cwd.replace("\\", "/")
 
 

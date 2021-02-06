@@ -1,12 +1,11 @@
 import logging
-from typing import List, Optional, Callable, Tuple
+from typing import List, Callable
 from enum import Flag, auto
-from vsstool.util.cmd import mkdir
+from vsstool.util.cmd import mkdir, cd, getcwd
 from vsstool.util.common import execute_cmd, is_exist, get_cwd_files
 from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
-from vsstool.util.config import absolute2relative
 
 
 class FileOperation(Flag):
@@ -52,28 +51,17 @@ def get_files(is_recursion=False):
 
 
 def get_dirs(is_recursion=False):
-    cmd = "ss dir{}".format(' -r' if is_recursion else '')
-    res = execute_cmd_with_subprocess(cmd)
-    dir_buffer = b""
-    dir_flag = b""
+    res = execute_cmd_with_subprocess("ss dir -f-")
+    cwd = getcwd()
     for i in res.stdout:
-        if is_recursion:
-            if i.startswith(b"$/"):
-                dir_buffer += i
-                dir_flag += b"$/"
-            else:
-                if dir_buffer != b"":
-                    dir_buffer += i
-            if i.endswith(b":"):
-                dir_flag += b":"
-
-            if dir_flag == b"$/:":
-                path = absolute2relative(bytes2str(dir_buffer[:-1]))
-                mkdir(path)
-                dir_buffer = ""
-        else:
-            if i.startswith(b"$") and not i.endswith(b":"):
-                mkdir(bytes2str(i[1:]))
+        if i.startswith(b"$") and not i.startswith(b"$/"):
+            dir = bytes2str(i[1:])
+            mkdir(dir)
+            if is_recursion:
+                cd(dir)
+                sync_dir()
+                get_dirs(is_recursion=True)
+                cd(cwd)
 
 
 def dispatch_files_operation(operation: FileOperation, *files_id):

@@ -6,6 +6,7 @@ from vsstool.util.common import execute_cmd, is_exist, get_cwd_files
 from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
+import re
 
 
 class FileOperation(Flag):
@@ -134,10 +135,25 @@ def operate_single_file(operator, filename: str):
     execute_cmd(f"ss {operator} \"{filename}\" -c-")
 
 
-def list_files():
-    vss_res = execute_cmd_with_subprocess("ss dir")
+def list_files(path="$/"):
+    vss_res = execute_cmd_with_subprocess(f"ss dir {path}")
     vss_files = file_filter(vss_res.stdout[:-2])
     return vss_files
+
+
+def list_dirs(path="$/"):
+    vss_res = execute_cmd_with_subprocess(f"ss dir {path} -f-")
+    vss_dirs = []
+    for i in vss_res.stdout[1:-2]:
+        vss_dirs.append(bytes2str(i[1:]))
+    return vss_dirs
+
+
+def list():
+    dirs = list_dirs()
+    files = list_files()
+    dirs.extend(files)
+    return dirs
 
 
 def show_id_view(items: List[int]):
@@ -191,3 +207,68 @@ def get_staged_files():
         if f not in vss_files:
             staged_files.append(f)
     return staged_files
+
+def get_file_properties(filepath: str):
+    vss_res = execute_cmd_with_subprocess(f"ss properties {filepath}")
+    vss_prot = parse_file_properties(vss_res.stdout[1:-1])
+    return [
+        vss_prot["File"],
+        vss_prot["Latest"]["Date"],
+        "file",
+        vss_prot["Latest"]["Version"],
+        vss_prot["Size"]
+    ]
+
+def get_dir_properties(dirpath: str):
+    vss_res = execute_cmd_with_subprocess(f"ss properties {dirpath}")
+    vss_prot = parse_dir_properties(vss_res.stdout[1:])
+    return [
+        vss_prot["Project"],
+        vss_prot["Latest"]["Date"],
+        "project",
+        vss_prot["Latest"]["Version"],
+        vss_prot["Contains"]
+    ]
+
+def parse_file_properties(info: List[str]) -> dict:
+    rtval = {}
+    delimiter = re.compile(": +")
+    for i, e in enumerate(info):
+        info_line = bytes2str(e)
+        match = delimiter.search(info_line)
+        if not match:
+            continue
+        if not info_line.startswith(" "):
+            l = len(info_line)
+            if match.span()[1] == len(info_line):
+                rtval[info_line[:match.span()[0]]] = {}
+            else:
+                rtval[info_line[:match.span()[0]]] = info_line[match.span()[1]:]
+        else:
+            sub_dict = rtval.get([i for i in rtval.keys()][-1])
+            sub_dict[info_line[:match.span()[0]].strip()] = info_line[match.span()[1]:].strip()
+    return rtval
+
+def parse_dir_properties(info: List[str]) -> dict:
+    rtval = {}
+    delimiter = re.compile(": *")
+    for i, e in enumerate(info):
+        info_line = bytes2str(e)
+        match = delimiter.search(info_line)
+        if not match:
+            last = [i for i in rtval.keys()]
+            if rtval[last[-1]] == {}:
+                rtval[last[-1]] = bytes2str(e).strip()
+            elif isinstance(rtval[last[-1]], str):
+                rtval[last[-1]] += bytes2str(e)
+            continue
+        if not info_line.startswith(" "):
+            l = len(info_line)
+            if match.span()[1] == len(info_line):
+                rtval[info_line[:match.span()[0]]] = {}
+            else:
+                rtval[info_line[:match.span()[0]]] = info_line[match.span()[1]:]
+        else:
+            sub_dict = rtval.get([i for i in rtval.keys()][-1])
+            sub_dict[info_line[:match.span()[0]].strip()] = info_line[match.span()[1]:].strip()
+    return rtval

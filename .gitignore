@@ -1,4 +1,7 @@
 build
+venv
+pyside-setup
+qt-everywhere-src-6.0.0-rc2
 *_build
 test
 dist

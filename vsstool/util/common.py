@@ -56,3 +56,6 @@ def get_cwd_files():
         if os.path.isfile(i):
             files.append(i)
     return files
+
+def get_tail(path: str):
+    return path.split("/")[-1]

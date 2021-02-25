@@ -1,0 +1,16 @@
+<RCC>
+  <qresource prefix="logo">
+    <file>logo-polymer.svg</file>
+  </qresource>
+  <qresource prefix="folder">
+    <file>fold.svg</file>
+  </qresource>
+  <qresource prefix="close">
+    <file>jurassic_close.svg</file>
+  </qresource>
+  <qresource prefix="window">
+    <file>jurassic_Window-max.svg</file>
+    <file>jurassic_Window-min.svg</file>
+    <file>jurassic_delete.svg</file>
+  </qresource>
+</RCC>

@@ -76,6 +76,9 @@ def dispatch_files_operation(operation: FileOperation, *files_id):
         operate_files("add", FilePathContext(get_staged_files), *files_id)
 
 
+def check(*args):
+    pass
+
 def operate_files(operation: str, context: FilePathContext, *files_id: int):
 
     """operate files
@@ -209,7 +212,7 @@ def get_staged_files():
     return staged_files
 
 def get_file_properties(filepath: str):
-    vss_res = execute_cmd_with_subprocess(f"ss properties {filepath}")
+    vss_res = execute_cmd_with_subprocess(f"ss properties \"{filepath}\"")
     vss_prot = parse_file_properties(vss_res.stdout[1:-1])
     return [
         vss_prot["File"],
@@ -229,6 +232,12 @@ def get_dir_properties(dirpath: str):
         vss_prot["Latest"]["Version"],
         vss_prot["Contains"]
     ]
+
+
+def parse_file_status(path="$/"):
+    vss_res = execute_cmd_with_subprocess(f"ss status {path}")
+    pass
+
 
 def parse_file_properties(info: List[str]) -> dict:
     rtval = {}

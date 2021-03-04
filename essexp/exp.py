@@ -3,18 +3,21 @@ from typing import Tuple
 
 from PySide6 import QtGui
 from PySide6.QtCore import QDir, QPointF, Slot, QSize, QPoint, QModelIndex, QAbstractItemModel
-from PySide6.QtWidgets import QMainWindow, QApplication, QFileSystemModel, QStyle, QStyleFactory, QMenu
+from PySide6.QtWidgets import QMainWindow, QApplication, QFileSystemModel, QStyle, QStyleFactory, QMenu, QHeaderView, \
+    QDialog
 from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel, QStandardItem
 from PySide6.QtCore import Qt
-from util.common import get_tail
+from vsstool.util.common import get_tail, bytes2str
 
-from model import EssFileModel, ItemSettingContext
-from model import TreeItem
-from vsstool import exec
+from essexp.common import set_icon, get_item_by_index, ITEM_PROPERTIES, update_item_data
+from essexp.pyui.info_dialog import Ui_infoDialog
+from essexp.pyui.input_dialog import Ui_inputDialog
+from essexp.widgets.trigger_menu import TriggerMenu, triggered
+from model import ItemSettingContext
+from vsstool import executor
 
 import sys
 import logging
-# sys.path.extend(['/media/devecor/Data/repo/vss-cmd'])
 
 from essexp.pyui.exp_ui import Ui_exp
 
@@ -34,23 +37,39 @@ class MouseArea(Flag):
     OUTSIDE = auto()  # out
 
 
+class InfoDialog(QDialog, Ui_infoDialog):
+
+    def __init__(self, ):
+        super(InfoDialog, self).__init__()
+        self.setupUi(self)
+
+
+class InputDialog(QDialog, Ui_inputDialog):
+
+    def __init__(self, ):
+        super(InputDialog, self).__init__()
+        self.setupUi(self)
+
+
 class Exp(Ui_exp, QMainWindow):
 
     def __init__(self):
         super(Exp, self).__init__()
         self.setupUi(self)
         self.__start_point = QPoint()
+        self.__trigger_menu = TriggerMenu(self, QStandardItem())
 
         self.setWindowFlag(Qt.FramelessWindowHint)
 
-        exec.execute_cmd("ss cp $/")
+        executor.execute_cmd("ss cp $/")
 
-        ess_file_model = QStandardItemModel(1, 5)
-        ess_file_model.setHorizontalHeaderLabels(["name", "date", "type", "version", "size"])
+        self.__ess_file_model = QStandardItemModel(1, len(ITEM_PROPERTIES))
+        self.__ess_file_model.setHorizontalHeaderLabels(ITEM_PROPERTIES)
 
-        self.__dirs_count, files_count = self.update_item_data(ItemSettingContext("$/", ess_file_model.setItem))
+        self.__dirs_count, files_count = update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
 
-        self.fileTreeView.setModel(ess_file_model)
+        self.fileTreeView.setModel(self.__ess_file_model)
+        self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
         self.resize_t = ResizeType.EITHER
 
@@ -63,16 +82,10 @@ class Exp(Ui_exp, QMainWindow):
         self.fileTreeView.doubleClicked.connect(
             lambda index: self.on_item_double_clicked(index,
                                                       self.__dirs_count,
-                                                      ess_file_model))
-        self.fileTreeView.clicked.connect(
-            lambda index: self.on_item_double_clicked(index,
-                                                      self.__dirs_count,
-                                                      ess_file_model))
-        self.__contextMenu = QMenu(self)
-        self.actionA = self.__contextMenu.addAction(u'添加')
-        self.actionB = self.__contextMenu.addAction(u'删除')
+                                                      self.__ess_file_model))
         self.fileTreeView.edit = self.edit
-        # self.fileTreeView.triggered.connect(self.on_item_triggered)
+        # self.fileTreeView.pressed.connect(self.on_item_triggered)
+        self.fileTreeView.customContextMenuRequested.connect(self.on_item_triggered)
 
     def edit(self, index, trigger, event) -> bool:
         logging.debug("self.edit")
@@ -169,48 +182,102 @@ class Exp(Ui_exp, QMainWindow):
 
     def on_item_double_clicked(self, index: QModelIndex, dirs_count: int, model: QStandardItemModel):
         if index.row() < dirs_count:
-            ancestor_indexes = [index]
-            while index.parent() != QModelIndex():
-                ancestor_indexes.append(index.parent())
-                index = index.parent()
-            ancestor_indexes.reverse()
-            item = model.invisibleRootItem()
-            for ancestor in ancestor_indexes:
-                item = item.child(ancestor.row(), ancestor.column())
-            info = {
-                "accessibleText": item.accessibleText(),
-                "text": item.text()
-            }
-            self.update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
+            item = get_item_by_index(index, model)
+            update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
+        else:
+            item = self.__trigger_menu.item
+            # res = executor.execute_cmd_with_subprocess(f"ss rename \"{item.accessibleText()}\"")
+            # if res.returncode != 0:
+            #     info_dialog = InfoDialog()
+            #     info_dialog.textLabel.setText("已被签出/签出失败")
+            #     info_dialog.show()
+            #     info_dialog.exec_()
+            # self.__update_file_status(item)
 
-    def update_item_data(self, context: ItemSettingContext) -> Tuple[int, int]:
-        base_dir = "" if context.text() is None or context.text() == "" else context.text() + "/"
-        vss_dirs = exec.list_dirs(context.text())
-        for i, d in enumerate(vss_dirs):
-            props = exec.get_dir_properties(base_dir + d)
-            item = QStandardItem(get_tail(props[0]))
-            item.setAccessibleText(props[0])
-            icon = QIcon()
-            icon.addFile(u":/folder/fold.svg", QSize(), QIcon.Normal, QIcon.On)
-            item.setIcon(icon)
-            context.set(i, 0, item)
-            for j, prop in enumerate(props[1:]):
-                p_item = QStandardItem(get_tail(prop))
-                p_item.setAccessibleText(prop)
-                context.set(i, j+1, p_item)
+    def on_item_triggered(self, pos: QPoint):
+        logging.debug("self.on_item_triggered")
+        index = self.fileTreeView.indexAt(pos)
+        if index == QModelIndex():
+            return
+        item = get_item_by_index(index.sibling(index.row(), 0), self.__ess_file_model)
+        self.__trigger_menu = TriggerMenu(self, item)
+        if item.ss_type == "dir":
+            self.__trigger_menu.enable_slots(rename=self.rename)
+        elif item.ss_type == "file":
+            self.__trigger_menu.enable_slots(checkout=self.try_checkout,
+                                             checkin=self.try_checkin,
+                                             uncheckout=self.try_uncheckout,
+                                             stage=self.testttt,
+                                             rename=self.rename)
+        else:
+            logging.error("inner essexp exception occurring!!!")
+            raise RuntimeError()
+        self.__trigger_menu.move(QtGui.QCursor().pos())
+        self.__trigger_menu.show()
 
-        vss_files = exec.list_files(context.text())
-        for i, f in enumerate(vss_files):
-            props = exec.get_file_properties(context.text() + "/" + f)
-            for j, prop in enumerate(props):
-                p_item = QStandardItem(get_tail(prop))
-                p_item.setAccessibleText(prop)
-                context.set(len(vss_dirs) + i, j, p_item)
-        return len(vss_dirs), len(vss_files)
+    def __update_file_status(self, item: QStandardItem):
+        stat = executor.execute_cmd_with_subprocess(f"ss status \"{item.accessibleText()}\"").stdout[0]
+        stat = bytes2str(stat).split()
+        exc_i = [i for i in range(len(stat)) if stat[i] == 'Exc'][0]
+        name_col = self.__ess_file_model.item(item.row(), 5)
+        date_col = self.__ess_file_model.item(item.row(), 1)
+        fold_col = self.__ess_file_model.item(item.row(), 6)
+        name_col.setText(stat[exc_i - 1])
+        date_col.setText(stat[exc_i + 1] + "   " + stat[exc_i + 2])
+        fold_col.setText(stat[-1])
 
-    def on_item_triggered(self, item: QStandardItem):
-        self.__contextMenu.move(QtGui.QCursor().pos())
-        self.__contextMenu.show()
+    def try_checkout(self):
+        item = self.__trigger_menu.item
+        res = executor.execute_cmd_with_subprocess(f"ss checkout \"{item.accessibleText()}\"")
+        if res.returncode != 0:
+            info_dialog = InfoDialog()
+            info_dialog.textLabel.setText("已被签出/签出失败")
+            info_dialog.show()
+            info_dialog.exec_()
+        self.__update_file_status(item)
+
+    def try_checkin(self):
+        item = self.__trigger_menu.item
+        res = executor.execute_cmd_with_subprocess(f"ss checkin \"{item.accessibleText()}\"")
+        if res.returncode != 0:
+            info_dialog = InfoDialog()
+            info_dialog.textLabel.setText("签入失败")
+            info_dialog.show()
+            info_dialog.exec_()
+        self.__update_file_status(item)
+
+    def try_uncheckout(self):
+        item = self.__trigger_menu.item
+        res = executor.execute_cmd_with_subprocess(f"ss undocheckout \"{item.accessibleText()}\"")
+        if res.returncode != 0:
+            info_dialog = InfoDialog()
+            info_dialog.textLabel.setText("取消签出失败")
+            info_dialog.show()
+            info_dialog.exec_()
+        self.__update_file_status(item)
+
+    def rename(self):
+        item = self.__trigger_menu.item
+        input_dialog = InputDialog()
+        input_dialog.le_input.setPlaceholderText("filename")
+        input_dialog.show()
+        input_dialog.exec_()
+        res = executor.execute_cmd_with_subprocess(
+            f"ss rename \"{item.accessibleText()}\" \"{input_dialog.le_input.text()}\"")
+        if res.returncode != 0:
+            info_dialog = InfoDialog()
+            info_dialog.textLabel.setText("重命名失败")
+            info_dialog.show()
+            info_dialog.exec_()
+        else:
+            item_base_dirs = item.accessibleText().split("/")[:-1]
+            item_base_dirs.append(input_dialog.le_input.text())
+            item.setAccessibleText("/".join(item_base_dirs))
+            item.setText(input_dialog.le_input.text())
+            self.__update_file_status(item)
+
+    def testttt(self):
+        pass
 
 
 if __name__ == "__main__":

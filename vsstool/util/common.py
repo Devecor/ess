@@ -18,8 +18,8 @@ def execute_cmd(cmd: str):
 
 
 def execute_cmd_with_subprocess(cmd: str):
-    logging.info(cmd.split())
-    res = subprocess.run(cmd.split(), capture_output=True, shell=True)
+    logging.info(cmd)
+    res = subprocess.run(cmd, capture_output=True, shell=True)
     res.stdout = res.stdout.splitlines()
     res.stderr = res.stderr.splitlines()
     logging.info(res)

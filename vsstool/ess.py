@@ -3,7 +3,7 @@
 import sys
 import argparse
 
-from vsstool import exec
+from vsstool import executor
 
 import logging
 
@@ -80,36 +80,36 @@ def parse_cmd(argv: str) -> argparse.Namespace:
 
 def get_executor(args):
     if args.d:
-        exec.get_dirs(args.r)
+        executor.get_dirs(args.r)
         return
-    exec.get_files(args.r)
+    executor.get_files(args.r)
 
 
 def add_executor(args):
-    dispatch_files_cmd(args, exec.FileOperation.ADD)
+    dispatch_files_cmd(args, executor.FileOperation.ADD)
 
 
 def checkout_executor(args):
-    dispatch_files_cmd(args, exec.FileOperation.CHECK_OUT)
+    dispatch_files_cmd(args, executor.FileOperation.CHECK_OUT)
 
 
 def checkin_executor(args):
-    dispatch_files_cmd(args, exec.FileOperation.CHECK_IN)
+    dispatch_files_cmd(args, executor.FileOperation.CHECK_IN)
 
 
 def undocheckout_executor(args):
-    dispatch_files_cmd(args, exec.FileOperation.UNDO_CHECK_OUT)
+    dispatch_files_cmd(args, executor.FileOperation.UNDO_CHECK_OUT)
 
 
-def dispatch_files_cmd(args: argparse.Namespace, operation: exec.FileOperation):
+def dispatch_files_cmd(args: argparse.Namespace, operation: executor.FileOperation):
     if args.all:
-        exec.dispatch_files_operation(operation, -1)
+        executor.dispatch_files_operation(operation, -1)
         return
     if isinstance(args.id, list):
         args.id = str2int(args.id)
-        exec.dispatch_files_operation(operation, *args.id)
+        executor.dispatch_files_operation(operation, *args.id)
     else:
-        exec.dispatch_files_operation(operation, int(args.id))
+        executor.dispatch_files_operation(operation, int(args.id))
 
 
 def main(argv=None):
@@ -119,16 +119,16 @@ def main(argv=None):
         logging.basicConfig(level=logging.DEBUG)
     logging.debug(args)
     if args.version:
-        exec.print_version(ESS_VERSION)
+        executor.print_version(ESS_VERSION)
         return
 
     verify_cwd()
-    exec.sync_dir()
+    executor.sync_dir()
 
     if args.sync:
-        exec.get_files()
+        executor.get_files()
     elif args.list:
-        exec.show_id_view(exec.list_files())
+        executor.show_id_view(executor.list_files())
     elif args.sub_cmd is not None:
         args.exec(args)
 

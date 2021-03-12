@@ -21,6 +21,22 @@ class ListType(Flag):
     LIST_CHECKED_OUT = auto()
 
 
+class DirProperty(object):
+    PROJECT, CONTENT, LATEST, COMMENT = range(4)
+
+
+class DirLatest(object):
+    VERSION, DATE = range(2)
+
+
+class FileProperty(object):
+    FILE, TYPE, SIZE, MODE, LATEST = range(5)
+
+
+class FileLatest(object):
+    VERSION, DATE = range(2)
+
+
 class FilePathContext(object):
 
     def __init__(self, files_provider: Callable):
@@ -211,26 +227,34 @@ def get_staged_files():
             staged_files.append(f)
     return staged_files
 
+
 def get_file_properties(filepath: str):
     vss_res = execute_cmd_with_subprocess(f"ss properties \"{filepath}\"")
-    vss_prot = parse_file_properties(vss_res.stdout[1:-1])
+    vss_prot = parse_file_properties(vss_res.stdout[1:])
+    keys = [i for i in vss_prot.keys()]
+    latest = vss_prot.get(keys[FileProperty.LATEST])
+    latest_keys = [i for i in latest.keys()]
     return [
-        vss_prot["File"],
-        vss_prot["Latest"]["Date"],
+        vss_prot.get(keys[FileProperty.FILE]),
+        latest.get(latest_keys[FileLatest.DATE]),
         "file",
-        vss_prot["Latest"]["Version"],
-        vss_prot["Size"]
+        latest.get(latest_keys[FileLatest.VERSION]),
+        vss_prot.get(keys[FileProperty.SIZE]),
     ]
+
 
 def get_dir_properties(dirpath: str):
     vss_res = execute_cmd_with_subprocess(f"ss properties {dirpath}")
     vss_prot = parse_dir_properties(vss_res.stdout[1:])
+    keys = [i for i in vss_prot.keys()]
+    latest = vss_prot.get(keys[DirProperty.LATEST])
+    latest_keys = [i for i in latest.keys()]
     return [
-        vss_prot["Project"],
-        vss_prot["Latest"]["Date"],
+        vss_prot.get(keys[DirProperty.PROJECT]),
+        latest.get(latest_keys[DirLatest.DATE]),
         "project",
-        vss_prot["Latest"]["Version"],
-        vss_prot["Contains"]
+        latest.get(latest_keys[DirLatest.VERSION]),
+        vss_prot.get(keys[DirProperty.CONTENT])
     ]
 
 
@@ -246,9 +270,12 @@ def parse_file_properties(info: List[str]) -> dict:
         info_line = bytes2str(e)
         match = delimiter.search(info_line)
         if not match:
+            rtval_keys = [i for i in rtval.keys()]
+            if rtval.get(rtval_keys[-1]) == {}:
+                rtval[rtval_keys[-1]] = info_line
             continue
         if not info_line.startswith(" "):
-            l = len(info_line)
+            s = match.span()
             if match.span()[1] == len(info_line):
                 rtval[info_line[:match.span()[0]]] = {}
             else:

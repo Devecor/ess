@@ -49,6 +49,14 @@ def is_exist(filename: str) -> bool:
     return os.path.exists(filename)
 
 
+def is_dir(path: str) -> bool:
+    return os.path.isdir(path)
+
+
+def is_file(path: str) -> bool:
+    return os.path.isfile(path)
+
+
 def get_cwd_files():
     current_dirs = os.listdir()
     files = []

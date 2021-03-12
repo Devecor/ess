@@ -2,18 +2,18 @@ from enum import Flag, auto
 from typing import Tuple
 
 from PySide6 import QtGui
-from PySide6.QtCore import QDir, QPointF, Slot, QSize, QPoint, QModelIndex, QAbstractItemModel
+from PySide6.QtCore import QDir, QPointF, Slot, QSize, QPoint, QAbstractItemModel
 from PySide6.QtWidgets import QMainWindow, QApplication, QFileSystemModel, QStyle, QStyleFactory, QMenu, QHeaderView, \
     QDialog
-from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel, QStandardItem
+from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
-from vsstool.util.common import get_tail, bytes2str
+from vsstool.util.common import get_tail, bytes2str, is_dir
 
 from essexp.common import set_icon, get_item_by_index, ITEM_PROPERTIES, update_item_data
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
 from essexp.widgets.trigger_menu import TriggerMenu, triggered
-from model import ItemSettingContext
+from essexp.model import ItemSettingContext, EssStandardItem, EssModelIndex
 from vsstool import executor
 
 import sys
@@ -57,7 +57,7 @@ class Exp(Ui_exp, QMainWindow):
         super(Exp, self).__init__()
         self.setupUi(self)
         self.__start_point = QPoint()
-        self.__trigger_menu = TriggerMenu(self, QStandardItem())
+        self.__trigger_menu = TriggerMenu(self, EssStandardItem())
 
         self.setWindowFlag(Qt.FramelessWindowHint)
 
@@ -180,12 +180,12 @@ class Exp(Ui_exp, QMainWindow):
             return True
         return False
 
-    def on_item_double_clicked(self, index: QModelIndex, dirs_count: int, model: QStandardItemModel):
-        if index.row() < dirs_count:
-            item = get_item_by_index(index, model)
+    def on_item_double_clicked(self, index: EssModelIndex, dirs_count: int, model: QStandardItemModel):
+        item = get_item_by_index(index, model)
+        if item.ss_type == "dir":
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
-        else:
-            item = self.__trigger_menu.item
+        elif item.ss_type == "file":
+            # item = self.__trigger_menu.item
             # res = executor.execute_cmd_with_subprocess(f"ss rename \"{item.accessibleText()}\"")
             # if res.returncode != 0:
             #     info_dialog = InfoDialog()
@@ -193,11 +193,12 @@ class Exp(Ui_exp, QMainWindow):
             #     info_dialog.show()
             #     info_dialog.exec_()
             # self.__update_file_status(item)
+            pass
 
     def on_item_triggered(self, pos: QPoint):
         logging.debug("self.on_item_triggered")
         index = self.fileTreeView.indexAt(pos)
-        if index == QModelIndex():
+        if index == EssModelIndex():
             return
         item = get_item_by_index(index.sibling(index.row(), 0), self.__ess_file_model)
         self.__trigger_menu = TriggerMenu(self, item)
@@ -215,7 +216,7 @@ class Exp(Ui_exp, QMainWindow):
         self.__trigger_menu.move(QtGui.QCursor().pos())
         self.__trigger_menu.show()
 
-    def __update_file_status(self, item: QStandardItem):
+    def __update_file_status(self, item: EssStandardItem):
         stat = executor.execute_cmd_with_subprocess(f"ss status \"{item.accessibleText()}\"").stdout[0]
         stat = bytes2str(stat).split()
         exc_i = [i for i in range(len(stat)) if stat[i] == 'Exc'][0]

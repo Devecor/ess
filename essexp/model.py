@@ -193,3 +193,34 @@ class EssFileModel(QAbstractItemModel):
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self.__root.data(section)
         return None
+
+
+class EssModelIndex(QModelIndex):
+    
+    def __str__(self):
+        return str({
+            'row': self.row(),
+            'col': self.column(),
+        })
+
+
+class EssStandardItem(QStandardItem):
+
+    __ss_type = ""
+
+    def __str__(self):
+        return str({
+            'text': self.text(),
+            'accessibleText': self.accessibleText(),
+            'index': self.index(),
+        })
+
+    @property
+    def ss_type(self):
+        return self.__ss_type
+
+    @ss_type.setter
+    def ss_type(self, t: str):
+        if t != "file" and t != "dir":
+            return
+        self.__ss_type = t

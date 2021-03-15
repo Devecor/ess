@@ -187,29 +187,40 @@ def show_id_view(items: List[int]):
 
 def file_filter(files: List[bytes]):
 
-    """这是一段很难看懂的代码， 下次一定干掉"""
-
     vss_files = []
     filename_buffer = ''
+    files_ = {}
+    for i in files:
+        files_[i] = bytes2str(i)
     for i in files:
         if not i.startswith(b"$"):
             f = bytes2str(i)
+            if len(i) == 78 and f.find('.') == -1:
+                filename_buffer += f
+                continue
 
-            if len(f) < 79:
+            if len(i) == 68 and f.find('.') == -1:
+                filename_buffer += (f + " ")
+                continue
+
+            if len(i) < 79:
                 if filename_buffer == '':
                     vss_files.append(f)
-                    continue
                 else:
                     filename_buffer += f
                     vss_files.append(filename_buffer)
                     filename_buffer = ''
-                    continue
-            if len(f) == 79:
+                continue
+
+            if len(i) == 79:
                 if is_exist(f):
                     vss_files.append(f)
-                    continue
                 else:
                     filename_buffer += f
+
+            if f == filename_buffer:
+                continue
+
             if filename_buffer.find('.') >= 0:
                 vss_files.append(filename_buffer)
                 filename_buffer = ''

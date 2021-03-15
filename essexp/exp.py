@@ -235,6 +235,7 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("已被签出/签出失败")
             info_dialog.show()
             info_dialog.exec_()
+            return
         self.__update_file_status(item)
 
     def try_checkin(self):

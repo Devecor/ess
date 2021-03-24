@@ -239,34 +239,41 @@ def get_staged_files():
     return staged_files
 
 
-def get_file_properties(filepath: str):
+def get_file_properties(filepath: str, callback=None, item=None, row=-1, context=None, dirs_count=-1):
     vss_res = execute_cmd_with_subprocess(f"ss properties \"{filepath}\"")
     vss_prot = parse_file_properties(vss_res.stdout[1:])
     keys = [i for i in vss_prot.keys()]
     latest = vss_prot.get(keys[FileProperty.LATEST])
     latest_keys = [i for i in latest.keys()]
-    return [
+    res = [
         vss_prot.get(keys[FileProperty.FILE]),
         latest.get(latest_keys[FileLatest.DATE]),
         "file",
         latest.get(latest_keys[FileLatest.VERSION]),
         vss_prot.get(keys[FileProperty.SIZE]),
     ]
+    if not callback:
+        return res
+    callback(res, item, row, context, dirs_count)
 
 
-def get_dir_properties(dirpath: str):
+def get_dir_properties(dirpath: str, callback=None, item=None, row=-1, context=None):
     vss_res = execute_cmd_with_subprocess(f"ss properties {dirpath}")
     vss_prot = parse_dir_properties(vss_res.stdout[1:])
     keys = [i for i in vss_prot.keys()]
     latest = vss_prot.get(keys[DirProperty.LATEST])
     latest_keys = [i for i in latest.keys()]
-    return [
+    res = [
         vss_prot.get(keys[DirProperty.PROJECT]),
         latest.get(latest_keys[DirLatest.DATE]),
         "project",
         latest.get(latest_keys[DirLatest.VERSION]),
         vss_prot.get(keys[DirProperty.CONTENT])
     ]
+
+    if not callback:
+        return res
+    callback(res, item, row, context)
 
 
 def parse_file_status(path="$/"):

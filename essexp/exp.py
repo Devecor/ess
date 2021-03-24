@@ -61,15 +61,14 @@ class Exp(Ui_exp, QMainWindow):
 
         self.setWindowFlag(Qt.FramelessWindowHint)
 
-        executor.execute_cmd("ss cp $/")
-
         self.__ess_file_model = QStandardItemModel(1, len(ITEM_PROPERTIES))
         self.__ess_file_model.setHorizontalHeaderLabels(ITEM_PROPERTIES)
 
-        self.__dirs_count, files_count = update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
+        self.__dirs_count = update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
 
         self.fileTreeView.setModel(self.__ess_file_model)
-        self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        # self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.Custom)
+        self.fileTreeView.header().resizeSection(0, 200)
 
         self.resize_t = ResizeType.EITHER
 

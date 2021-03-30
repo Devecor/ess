@@ -1,6 +1,7 @@
 import logging
 import os
 import subprocess
+from datetime import datetime
 from typing import List
 
 
@@ -65,5 +66,20 @@ def get_cwd_files():
             files.append(i)
     return files
 
+
 def get_tail(path: str):
     return path.split("/")[-1]
+
+
+def get_base_dir(filepath: str):
+    return os.path.dirname(filepath)
+
+
+def open_file(filepath: str):
+    os.startfile(filepath)
+
+
+def get_file_timestamp(filepath: str):
+    m = os.path.getmtime(filepath)
+    fm = datetime.fromtimestamp(m).strftime("%Y/%m/%d %#H:%M:%S")
+    return fm

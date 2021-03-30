@@ -7,6 +7,7 @@ from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
 import re
+import json
 
 
 class FileOperation(Flag):
@@ -81,6 +82,14 @@ def get_dirs(is_recursion=False):
                 cd(cwd)
 
 
+def get_items(path="$/") -> dict:
+    res = execute_cmd_with_subprocess(f"essharp -l \"{path}\"")
+
+    if res.returncode == 0:
+        return json.loads(bytes2str(res.stdout[0]))
+    return {}
+
+
 def dispatch_files_operation(operation: FileOperation, *files_id):
     if operation == FileOperation.CHECK_OUT:
         operate_files("checkout", FilePathContext(list_files), *files_id)
@@ -94,6 +103,7 @@ def dispatch_files_operation(operation: FileOperation, *files_id):
 
 def check(*args):
     pass
+
 
 def operate_files(operation: str, context: FilePathContext, *files_id: int):
 
@@ -302,6 +312,7 @@ def parse_file_properties(info: List[str]) -> dict:
             sub_dict = rtval.get([i for i in rtval.keys()][-1])
             sub_dict[info_line[:match.span()[0]].strip()] = info_line[match.span()[1]:].strip()
     return rtval
+
 
 def parse_dir_properties(info: List[str]) -> dict:
     rtval = {}

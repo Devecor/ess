@@ -10,7 +10,7 @@ namespace ess.midware.essharp
         public static VSSDatabase Db { get; } = new VSSDatabase();
         public static DbWrapper Current { get; } = new DbWrapper();
 
-        public void Connect(string configfile, string user, string password)
+        public void Connect(string configfile, string user="", string password="")
         {
             Db.Open(configfile, user, password);
         }
@@ -22,12 +22,12 @@ namespace ess.midware.essharp
             foreach(VSSItem sub in item.Items)
             {
                 Dictionary<string, object> props = new Dictionary<string, object>(8);
-                if (sub.Type == 0)
+                if (sub.Type == 0)    // for projects
                 {
                     props.Add("type", "project");
-                    props.Add("content", sub);
+                    props.Add("size", sub.Items.Count + " item");
                 }
-                else
+                else    // for files
                 {
                     props.Add("type", "file");
                     props.Add("ischeckout", sub.IsCheckedOut);
@@ -42,6 +42,7 @@ namespace ess.midware.essharp
                 versionInfo.Add("version_number", sub.VSSVersion.VersionNumber.ToString());
                 versionInfo.Add("comment", sub.VSSVersion.Comment);
                 versionInfo.Add("action", sub.VSSVersion.Action);
+                versionInfo.Add("date", sub.VSSVersion.Date.ToString());
                 props.Add("version_info", versionInfo);
 
                 subitems.Add(sub.Name, props);
@@ -59,9 +60,13 @@ namespace ess.midware.essharp
 
             cmd_app.HelpOption("-? | -h | --help");
             cmd_app.Execute(args);
-            var opts = cmd_app.GetOptions();
 
-            foreach(var opt in opts)
+            string ssini = Environment.GetEnvironmentVariable("SSDIR");
+            // Current.Connect(ssini, "Cai.zfeng", "#fujitsu7864");
+            Current.Connect(ssini);
+
+            var opts = cmd_app.GetOptions();
+            foreach (var opt in opts)
             {
                 if (opt.Values.Count > 0)
                 {
@@ -71,18 +76,20 @@ namespace ess.midware.essharp
                             Current.List(opt.Value());
                             break;
                     }
-
                 }
             }
         }
 
         public string List(string path)
         {
-            string ssini = Environment.GetEnvironmentVariable("SSDIR");
-            Current.Connect(ssini, "Cai.zfeng", "#fujitsu7864");
             string res = Current.Items(path);
             Console.WriteLine(res);
             return res;
+        }
+
+        public void GetFiles(string fullname, string output)
+        {
+            Db.VSSItem[fullname].Get(output);
         }
     }
 }

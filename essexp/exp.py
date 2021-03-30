@@ -1,25 +1,23 @@
 from enum import Flag, auto
-from typing import Tuple
 
 from PySide6 import QtGui
-from PySide6.QtCore import QDir, QPointF, Slot, QSize, QPoint, QAbstractItemModel
-from PySide6.QtWidgets import QMainWindow, QApplication, QFileSystemModel, QStyle, QStyleFactory, QMenu, QHeaderView, \
-    QDialog
+from PySide6.QtCore import QPointF, QSize, QPoint
+from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
 from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
-from vsstool.util.common import get_tail, bytes2str, is_dir
 
-from essexp.common import set_icon, get_item_by_index, ITEM_PROPERTIES, update_item_data
+from vsstool.util.common import bytes2str
+from vsstool import executor
+
+from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
-from essexp.widgets.trigger_menu import TriggerMenu, triggered
+from essexp.pyui.exp_ui import Ui_exp
+from essexp.widgets.trigger_menu import TriggerMenu
 from essexp.model import ItemSettingContext, EssStandardItem, EssModelIndex
-from vsstool import executor
 
 import sys
 import logging
-
-from essexp.pyui.exp_ui import Ui_exp
 
 
 class ResizeType(Flag):
@@ -181,18 +179,11 @@ class Exp(Ui_exp, QMainWindow):
 
     def on_item_double_clicked(self, index: EssModelIndex, dirs_count: int, model: QStandardItemModel):
         item = get_item_by_index(index, model)
-        if item.ss_type == "dir":
+        if item.ss_type == "project":
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
-            # item = self.__trigger_menu.item
-            # res = executor.execute_cmd_with_subprocess(f"ss rename \"{item.accessibleText()}\"")
-            # if res.returncode != 0:
-            #     info_dialog = InfoDialog()
-            #     info_dialog.textLabel.setText("已被签出/签出失败")
-            #     info_dialog.show()
-            #     info_dialog.exec_()
-            # self.__update_file_status(item)
-            pass
+            fullname = item.accessibleText()[:-1]
+            open_file_by_ss(fullname, item.ss_timestamp)
 
     def on_item_triggered(self, pos: QPoint):
         logging.debug("self.on_item_triggered")
@@ -201,7 +192,7 @@ class Exp(Ui_exp, QMainWindow):
             return
         item = get_item_by_index(index.sibling(index.row(), 0), self.__ess_file_model)
         self.__trigger_menu = TriggerMenu(self, item)
-        if item.ss_type == "dir":
+        if item.ss_type == "project":
             self.__trigger_menu.enable_slots(rename=self.rename)
         elif item.ss_type == "file":
             self.__trigger_menu.enable_slots(checkout=self.try_checkout,

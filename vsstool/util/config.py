@@ -19,7 +19,7 @@ class UsersConfig(object):
 
     def __initialize(self, ssdir=get_env("SSDIR"), user=get_user()):
 
-        '''读取users.txt文件, 取得用户配置目录'''
+        """读取users.txt文件, 取得用户配置目录"""
 
         self.__ssdir = ssdir if ssdir[-1] == '\\' else ssdir + '\\'
         self.__user_name = user

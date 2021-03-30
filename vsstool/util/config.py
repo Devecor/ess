@@ -96,11 +96,5 @@ def getAbsoluteDir():
     return "$/" + cwd.replace("\\", "/")
 
 
-def absolute2relative(abs: str):
-    pwd = getAbsoluteDir()
-    if pwd == abs[:len(pwd)]:
-        return abs[len(pwd) + 1:]
-    else:
-        logging.info("abs: " + abs)
-        logging.debug("pwd: " + pwd)
-        raise RuntimeError("inner error")
+def getLocals(fullname: str):
+    return UsersConfig().root + "\\".join(fullname[1:].split("/"))

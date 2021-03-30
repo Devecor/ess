@@ -11,7 +11,7 @@ from essexp.model import ItemSettingContext, EssStandardItem, EssModelIndex
 from vsstool import executor
 import threading
 
-from vsstool.util.config import UsersConfig
+from vsstool.util.config import getLocals
 
 ITEM_PROPERTIES = ["name", "date", "type", "version", "size", "user", "checkout folder"]
 
@@ -48,12 +48,8 @@ def update_items(context: ItemSettingContext):
     items = get_items(context.text())
     for i, d in enumerate(items.keys()):
         item_i = EssStandardItem(d)
-        s = item_i.accessibleText()
         item_i.ss_type = items[d]["type"]
         item_i.ss_timestamp = items[d]["version_info"]["date"]
-        if items[d]["type"] == "project":
-            set_icon(item_i, u":/folder/fold.svg")
-        context.set(i, 0, item_i)
 
         props = [
             items[d]["version_info"]["date"],
@@ -64,7 +60,14 @@ def update_items(context: ItemSettingContext):
             ""
         ]
 
-        item_i.setAccessibleText(context.text() + d + "/")
+        if items[d]["type"] == "project":
+            set_icon(item_i, u":/folder/fold.svg")
+            item_i.setAccessibleText(context.text() + d + "/")
+        else:
+            item_i.setAccessibleText(context.text() + d)
+            if items[d]["ischeckout"]:
+                props[-1] = get_base_dir(items[d]["local_space"])
+        context.set(i, 0, item_i)
 
         for j, prop in enumerate(props):
             item_j = EssStandardItem(str(prop))
@@ -125,7 +128,7 @@ def on_file_properties_owned(props, item: EssStandardItem, row, context, dirs_co
 
 
 def open_file_by_ss(fullname: str, timestamp: str) -> bool:
-    path = UsersConfig().root + "\\".join(fullname[1:].split("/"))
+    path = getLocals(fullname)
     if is_exist(path):
         if timestamp == get_file_timestamp(path):
             open_file(path)

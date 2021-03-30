@@ -10,7 +10,7 @@ namespace ess.midware.essharp
         public static VSSDatabase Db { get; } = new VSSDatabase();
         public static DbWrapper Current { get; } = new DbWrapper();
 
-        public void Connect(string configfile, string user="", string password="")
+        public void Connect(string configfile, string user = "", string password = "")
         {
             Db.Open(configfile, user, password);
         }
@@ -19,7 +19,7 @@ namespace ess.midware.essharp
         {
             VSSItem item = Db.VSSItem[path];
             Dictionary<string, object> subitems = new Dictionary<string, object>(8);
-            foreach(VSSItem sub in item.Items)
+            foreach (VSSItem sub in item.Items)
             {
                 Dictionary<string, object> props = new Dictionary<string, object>(8);
                 if (sub.Type == 0)    // for projects
@@ -30,7 +30,8 @@ namespace ess.midware.essharp
                 else    // for files
                 {
                     props.Add("type", "file");
-                    props.Add("ischeckout", sub.IsCheckedOut);
+                    props.Add("ischeckout", sub.IsCheckedOut == 0 ? false : true);
+                    props.Add("local_space", sub.LocalSpec);
                     props.Add("encoding", sub.Encoding);
                     props.Add("size", sub.Size);
                 }
@@ -57,6 +58,7 @@ namespace ess.midware.essharp
             cmd_app.Description = "essharp: a cmd tool for vss with c sharp";
             cmd_app.Name = "essharp";
             cmd_app.Option("-l | --list", "list subitems", CommandOptionType.SingleValue);
+            cmd_app.Option("-s | --status", "item's status", CommandOptionType.SingleValue);
 
             cmd_app.HelpOption("-? | -h | --help");
             cmd_app.Execute(args);
@@ -75,14 +77,17 @@ namespace ess.midware.essharp
                         case "list":
                             Current.List(opt.Value());
                             break;
+                        case "status":
+                            Current.GetFileStatus(opt.Value());
+                            break;
                     }
                 }
             }
         }
 
-        public string List(string path)
+        public string List(string fullname)
         {
-            string res = Current.Items(path);
+            string res = Current.Items(fullname);
             Console.WriteLine(res);
             return res;
         }
@@ -90,6 +95,30 @@ namespace ess.midware.essharp
         public void GetFiles(string fullname, string output)
         {
             Db.VSSItem[fullname].Get(output);
+        }
+
+        public string GetFileStatus(string fullname)
+        {
+            VSSItem item = Db.VSSItem[fullname];
+            Dictionary<string, object> status = new Dictionary<string, object>(3);
+
+            status.Add("ischeckout", item.IsCheckedOut == 0 ? false : true);
+            status.Add("encoding", item.Encoding);
+            status.Add("checkout_folder", item.LocalSpec);
+            status.Add("size", item.Size);
+            status.Add("version_number", item.VersionNumber);
+            status.Add("deleted", item.Deleted);
+            Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
+            versionInfo.Add("user_name", item.VSSVersion.Username);
+            versionInfo.Add("version_number", item.VSSVersion.VersionNumber.ToString());
+            versionInfo.Add("comment", item.VSSVersion.Comment);
+            versionInfo.Add("action", item.VSSVersion.Action);
+            versionInfo.Add("date", item.VSSVersion.Date.ToString());
+            status.Add("version_info", versionInfo);
+
+            string res = Util.JsonSerialize(status);
+            Console.WriteLine(res);
+            return res;
         }
     }
 }

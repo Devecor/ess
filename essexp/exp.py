@@ -5,8 +5,9 @@ from PySide6.QtCore import QPointF, QSize, QPoint
 from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
 from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
+from util.config import getLocals
 
-from vsstool.util.common import bytes2str
+from vsstool.util.common import get_base_dir
 from vsstool import executor
 
 from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss
@@ -62,7 +63,7 @@ class Exp(Ui_exp, QMainWindow):
         self.__ess_file_model = QStandardItemModel(1, len(ITEM_PROPERTIES))
         self.__ess_file_model.setHorizontalHeaderLabels(ITEM_PROPERTIES)
 
-        self.__dirs_count = update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
+        update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
 
         self.fileTreeView.setModel(self.__ess_file_model)
         # self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.Custom)
@@ -76,10 +77,7 @@ class Exp(Ui_exp, QMainWindow):
         self.bt_close.clicked.connect(self.close)
         self.bt_maximize.clicked.connect(self.on_bt_maximize_clicked)
         self.bt_minimize.clicked.connect(self.showMinimized)
-        self.fileTreeView.doubleClicked.connect(
-            lambda index: self.on_item_double_clicked(index,
-                                                      self.__dirs_count,
-                                                      self.__ess_file_model))
+        self.fileTreeView.doubleClicked.connect(self.on_item_double_clicked)
         self.fileTreeView.edit = self.edit
         # self.fileTreeView.pressed.connect(self.on_item_triggered)
         self.fileTreeView.customContextMenuRequested.connect(self.on_item_triggered)
@@ -177,8 +175,8 @@ class Exp(Ui_exp, QMainWindow):
             return True
         return False
 
-    def on_item_double_clicked(self, index: EssModelIndex, dirs_count: int, model: QStandardItemModel):
-        item = get_item_by_index(index, model)
+    def on_item_double_clicked(self, index: EssModelIndex):
+        item = get_item_by_index(index, self.__ess_file_model)
         if item.ss_type == "project":
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
@@ -186,7 +184,6 @@ class Exp(Ui_exp, QMainWindow):
             open_file_by_ss(fullname, item.ss_timestamp)
 
     def on_item_triggered(self, pos: QPoint):
-        logging.debug("self.on_item_triggered")
         index = self.fileTreeView.indexAt(pos)
         if index == EssModelIndex():
             return
@@ -201,21 +198,18 @@ class Exp(Ui_exp, QMainWindow):
                                              stage=self.testttt,
                                              rename=self.rename)
         else:
-            logging.error("inner essexp exception occurring!!!")
             raise RuntimeError()
         self.__trigger_menu.move(QtGui.QCursor().pos())
         self.__trigger_menu.show()
 
     def __update_file_status(self, item: EssStandardItem):
-        stat = executor.execute_cmd_with_subprocess(f"ss status \"{item.accessibleText()}\"").stdout[0]
-        stat = bytes2str(stat).split()
-        exc_i = [i for i in range(len(stat)) if stat[i] == 'Exc'][0]
-        name_col = self.__ess_file_model.item(item.row(), 5)
-        date_col = self.__ess_file_model.item(item.row(), 1)
-        fold_col = self.__ess_file_model.item(item.row(), 6)
-        name_col.setText(stat[exc_i - 1])
-        date_col.setText(stat[exc_i + 1] + "   " + stat[exc_i + 2])
-        fold_col.setText(stat[-1])
+        stat = executor.get_file_status(item.accessibleText())
+        name_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("user"))
+        date_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("date"))
+        fold_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("checkout folder"))
+        name_col.setText(stat["version_info"]["user_name"])
+        date_col.setText(stat["version_info"]["date"])
+        fold_col.setText(get_base_dir(getLocals(item.accessibleText())))
 
     def try_checkout(self):
         item = self.__trigger_menu.item

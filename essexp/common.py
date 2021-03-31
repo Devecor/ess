@@ -3,7 +3,7 @@ from typing import Tuple, List
 from PySide6.QtCore import QSize
 from PySide6.QtGui import QIcon, QStandardItemModel
 
-from vsstool.executor import get_items
+from vsstool.executor import get_items, sync_dir
 from vsstool.util.cmd import mkdir, cd
 from vsstool.util.common import get_tail, get_base_dir, is_exist, execute_cmd, open_file, get_file_timestamp
 
@@ -129,17 +129,15 @@ def on_file_properties_owned(props, item: EssStandardItem, row, context, dirs_co
 
 def open_file_by_ss(fullname: str, timestamp: str) -> bool:
     path = getLocals(fullname)
-    if is_exist(path):
-        if timestamp == get_file_timestamp(path):
-            open_file(path)
-            return True
-    else:
-        base_dir = get_base_dir(path)
-        if not is_exist(base_dir):
-            mkdir(base_dir)
-        cd(base_dir)
+
+    base_dir = get_base_dir(path)
+    if not is_exist(base_dir):
+        mkdir(base_dir)
+    cd(base_dir)
 
     cmd = f"ss get \"{fullname}\""
     execute_cmd(cmd)
-    open_file(path)
-    return True
+
+    if is_exist(path):
+        open_file(path)
+        return True

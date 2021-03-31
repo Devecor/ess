@@ -2,16 +2,19 @@
 <ui version="4.0">
  <class>exp</class>
  <widget class="QMainWindow" name="exp">
+  <property name="windowModality">
+   <enum>Qt::ApplicationModal</enum>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>647</width>
-    <height>531</height>
+    <width>800</width>
+    <height>600</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -20,7 +23,11 @@
    <enum>Qt::DefaultContextMenu</enum>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>ess</string>
+  </property>
+  <property name="windowIcon">
+   <iconset resource="../res/icon.qrc">
+    <normaloff>:/logo/logo-polymer.svg</normaloff>:/logo/logo-polymer.svg</iconset>
   </property>
   <widget class="QWidget" name="centralwidget">
    <property name="sizePolicy">

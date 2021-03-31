@@ -5,8 +5,8 @@ from PySide6.QtCore import QPointF, QSize, QPoint
 from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
 from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
-from util.config import getLocals
 
+from vsstool.util.config import getLocals
 from vsstool.util.common import get_base_dir
 from vsstool import executor
 
@@ -67,7 +67,8 @@ class Exp(Ui_exp, QMainWindow):
 
         self.fileTreeView.setModel(self.__ess_file_model)
         # self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.Custom)
-        self.fileTreeView.header().resizeSection(0, 200)
+        self.fileTreeView.header().resizeSection(0, 300)
+        self.fileTreeView.header().resizeSection(1, 120)
 
         self.resize_t = ResizeType.EITHER
 
@@ -180,7 +181,7 @@ class Exp(Ui_exp, QMainWindow):
         if item.ss_type == "project":
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
-            fullname = item.accessibleText()[:-1]
+            fullname = item.accessibleText()
             open_file_by_ss(fullname, item.ss_timestamp)
 
     def on_item_triggered(self, pos: QPoint):

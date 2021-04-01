@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt
 from vsstool.util.common import get_base_dir
 from vsstool import executor
 
-from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss
+from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
 from essexp.pyui.exp_ui import Ui_exp
@@ -65,21 +65,16 @@ class Exp(Ui_exp, QMainWindow):
         update_item_data(ItemSettingContext("$/", self.__ess_file_model.setItem))
 
         self.fileTreeView.setModel(self.__ess_file_model)
-        # self.fileTreeView.header().setSectionResizeMode(QHeaderView.ResizeMode.Custom)
         self.fileTreeView.header().resizeSection(0, 300)
         self.fileTreeView.header().resizeSection(1, 120)
 
         self.resize_t = ResizeType.EITHER
-
-        # self.setMouseTracking(True)
-        # self.grabMouse()
 
         self.bt_close.clicked.connect(self.close)
         self.bt_maximize.clicked.connect(self.on_bt_maximize_clicked)
         self.bt_minimize.clicked.connect(self.showMinimized)
         self.fileTreeView.doubleClicked.connect(self.on_item_double_clicked)
         self.fileTreeView.edit = self.edit
-        # self.fileTreeView.pressed.connect(self.on_item_triggered)
         self.fileTreeView.customContextMenuRequested.connect(self.on_item_triggered)
 
     def edit(self, index, trigger, event) -> bool:
@@ -89,7 +84,6 @@ class Exp(Ui_exp, QMainWindow):
             "trigger": trigger,
             "event": event
         })
-        self.pos()
         return False
 
     def on_bt_maximize_clicked(self):
@@ -101,45 +95,6 @@ class Exp(Ui_exp, QMainWindow):
             self.showMaximized()
             icon.addFile(u":/window/jurassic_Window-min.svg", QSize(), QIcon.Normal, QIcon.Off)
         self.bt_maximize.setIcon(icon)
-
-    def mouseMoveEvent(self, event: QMouseEvent) -> None:
-        super().mouseMoveEvent(event)
-        self.update_cursor(event.position())
-        if event.isUpdateEvent():
-            self.manual_resize(event.position())
-            if self.__start_point != QPoint():
-                self.move(event.globalPos() - self.__start_point)
-
-    def mousePressEvent(self, event: QMouseEvent) -> None:
-        super().mousePressEvent(event)
-        # self.releaseMouse()
-        # if self.is_on_x_edge(event.position()):
-        #     self.resize_t = ResizeType.WIDTH
-        # elif self.is_on_y_edge(event.position()):
-        #     self.resize_t = ResizeType.HEIGHT
-        # elif self.is_on_diag(event.position()):
-        #     self.resize_t = ResizeType.BOTH
-        # else:
-        #     self.resize_t = ResizeType.EITHER
-        if self.is_move_area(event.position()):
-            self.__start_point = event.pos()
-
-    def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-        super().mouseReleaseEvent(event)
-        # self.grabMouse()
-        # self.resize_t = ResizeType.EITHER
-        self.__start_point = QPoint()
-
-    def manual_resize(self, position: QPointF) -> None:
-        if self.resize_t == ResizeType.WIDTH:
-            self.fileTreeView.resize(position.x() - self.fileTreeView.x(),
-                                     self.fileTreeView.height())
-        elif self.resize_t == ResizeType.HEIGHT:
-            self.fileTreeView.resize(self.fileTreeView.width(),
-                                     position.y() - self.fileTreeView.y())
-        elif self.resize_t == ResizeType.BOTH:
-            self.fileTreeView.resize(position.x() - self.fileTreeView.x(),
-                                     position.y() - self.fileTreeView.y())
 
     def update_cursor(self, position: QPointF):
         if self.is_on_x_edge(position):
@@ -206,12 +161,21 @@ class Exp(Ui_exp, QMainWindow):
     def __update_file_status(self, item: EssStandardItem):
         stat = executor.get_file_status(item.accessibleText())
         parent = item.parent()
-        name_col = parent.child(item.row(), ITEM_PROPERTIES.index("user"))
-        date_col = parent.child(item.row(), ITEM_PROPERTIES.index("date"))
-        fold_col = parent.child(item.row(), ITEM_PROPERTIES.index("checkout folder"))
+        if parent is None:
+            name_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("user"))
+            date_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("date"))
+            fold_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("checkout folder"))
+        else:
+            name_col = parent.child(item.row(), ITEM_PROPERTIES.index("user"))
+            date_col = parent.child(item.row(), ITEM_PROPERTIES.index("date"))
+            fold_col = parent.child(item.row(), ITEM_PROPERTIES.index("checkout folder"))
         name_col.setText(stat["version_info"]["user_name"])
         date_col.setText(stat["version_info"]["date"])
         fold_col.setText(get_base_dir(stat["checkout_folder"]))
+        if stat["ischeckout"]:
+            set_icon(item, u":/file/file.svg")
+        else:
+            set_icon(item, u":/checkout/checkoutline02.svg")
 
     def try_checkout(self):
         item = self.__trigger_menu.item
@@ -221,6 +185,7 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("已被签出/签出失败")
             info_dialog.show()
             info_dialog.exec_()
+            return
         self.__update_file_status(item)
 
     def try_checkin(self):
@@ -231,6 +196,7 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("签入失败")
             info_dialog.show()
             info_dialog.exec_()
+            return
         self.__update_file_status(item)
 
     def try_uncheckout(self):
@@ -241,6 +207,7 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("取消签出失败")
             info_dialog.show()
             info_dialog.exec_()
+            return
         self.__update_file_status(item)
 
     def rename(self):

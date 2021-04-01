@@ -2,6 +2,12 @@
   <qresource prefix="logo">
     <file>logo-polymer.svg</file>
   </qresource>
+  <qresource prefix="file">
+    <file>file.svg</file>
+  </qresource>
+  <qresource prefix="checkout">
+    <file>checkoutline02.svg</file>
+  </qresource>
   <qresource prefix="folder">
     <file>fold.svg</file>
   </qresource>

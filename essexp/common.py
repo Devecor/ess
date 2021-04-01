@@ -34,17 +34,7 @@ def get_item_by_index(index: EssModelIndex, model: QStandardItemModel) -> EssSta
     return item
 
 
-def update_item_data(context: ItemSettingContext) -> int:
-    update_items(context)
-    # base_dir = "" if context.text() is None or context.text() == "" else context.text() + "/"
-
-    # dirs_count = update_dirs(base_dir, context)
-    # update_files(dirs_count, context)
-
-    # return dirs_count
-
-
-def update_items(context: ItemSettingContext):
+def update_item_data(context: ItemSettingContext):
     items = get_items(context.text())
     for i, d in enumerate(items.keys()):
         item_i = EssStandardItem(d)
@@ -66,6 +56,7 @@ def update_items(context: ItemSettingContext):
         else:
             item_i.setAccessibleText(context.text() + d)
             if items[d]["ischeckout"]:
+                set_icon(item_i, u":/checkout/checkoutline02.svg")
                 props[-1] = get_base_dir(items[d]["local_space"])
         context.set(i, 0, item_i)
 

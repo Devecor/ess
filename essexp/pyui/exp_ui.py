@@ -18,7 +18,7 @@ class Ui_exp(object):
     def setupUi(self, exp):
         if not exp.objectName():
             exp.setObjectName(u"exp")
-        exp.setWindowModality(Qt.ApplicationModal)
+        exp.setWindowModality(Qt.NonModal)
         exp.resize(800, 600)
         sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)

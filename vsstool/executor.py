@@ -88,11 +88,13 @@ def get_items(path="$/") -> dict:
         return json.loads(bytes2str(res.stdout[0]))
     return {}
 
+
 def get_file_status(path) -> dict:
     res = execute_cmd_with_subprocess(f"essharp -s \"{path}\"")
     if res.returncode == 0:
         return json.loads(bytes2str(res.stdout[0]))
     return {}
+
 
 def dispatch_files_operation(operation: FileOperation, *files_id):
     if operation == FileOperation.CHECK_OUT:

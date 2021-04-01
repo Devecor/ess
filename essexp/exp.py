@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
 from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
 
-from vsstool.util.config import getLocals
 from vsstool.util.common import get_base_dir
 from vsstool import executor
 
@@ -182,7 +181,7 @@ class Exp(Ui_exp, QMainWindow):
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
             fullname = item.accessibleText()
-            open_file_by_ss(fullname, item.ss_timestamp)
+            open_file_by_ss(fullname)
 
     def on_item_triggered(self, pos: QPoint):
         index = self.fileTreeView.indexAt(pos)
@@ -191,13 +190,14 @@ class Exp(Ui_exp, QMainWindow):
         item = get_item_by_index(index.sibling(index.row(), 0), self.__ess_file_model)
         self.__trigger_menu = TriggerMenu(self, item)
         if item.ss_type == "project":
-            self.__trigger_menu.enable_slots(rename=self.rename)
+            self.__trigger_menu.enable_slots(openfolder=self.open_in_folder,
+                                             rename=self.rename,)
         elif item.ss_type == "file":
-            self.__trigger_menu.enable_slots(checkout=self.try_checkout,
+            self.__trigger_menu.enable_slots(openfolder=self.open_in_folder,
+                                             checkout=self.try_checkout,
                                              checkin=self.try_checkin,
                                              uncheckout=self.try_uncheckout,
-                                             stage=self.testttt,
-                                             rename=self.rename)
+                                             rename=self.rename,)
         else:
             raise RuntimeError()
         self.__trigger_menu.move(QtGui.QCursor().pos())
@@ -205,12 +205,13 @@ class Exp(Ui_exp, QMainWindow):
 
     def __update_file_status(self, item: EssStandardItem):
         stat = executor.get_file_status(item.accessibleText())
-        name_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("user"))
-        date_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("date"))
-        fold_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("checkout folder"))
+        parent = item.parent()
+        name_col = parent.child(item.row(), ITEM_PROPERTIES.index("user"))
+        date_col = parent.child(item.row(), ITEM_PROPERTIES.index("date"))
+        fold_col = parent.child(item.row(), ITEM_PROPERTIES.index("checkout folder"))
         name_col.setText(stat["version_info"]["user_name"])
         date_col.setText(stat["version_info"]["date"])
-        fold_col.setText(get_base_dir(getLocals(item.accessibleText())))
+        fold_col.setText(get_base_dir(stat["checkout_folder"]))
 
     def try_checkout(self):
         item = self.__trigger_menu.item
@@ -220,12 +221,11 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("已被签出/签出失败")
             info_dialog.show()
             info_dialog.exec_()
-            return
         self.__update_file_status(item)
 
     def try_checkin(self):
         item = self.__trigger_menu.item
-        res = executor.execute_cmd_with_subprocess(f"ss checkin \"{item.accessibleText()}\"")
+        res = executor.execute_cmd_with_subprocess(f"ss checkin \"{item.accessibleText()}\" -c-")
         if res.returncode != 0:
             info_dialog = InfoDialog()
             info_dialog.textLabel.setText("签入失败")
@@ -263,8 +263,9 @@ class Exp(Ui_exp, QMainWindow):
             item.setText(input_dialog.le_input.text())
             self.__update_file_status(item)
 
-    def testttt(self):
-        pass
+    def open_in_folder(self):
+        item = self.__trigger_menu.item
+        open_file_by_ss(get_base_dir(item.accessibleText()))
 
 
 if __name__ == "__main__":

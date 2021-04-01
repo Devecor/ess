@@ -127,7 +127,7 @@ def on_file_properties_owned(props, item: EssStandardItem, row, context, dirs_co
         context.set(dirs_count + row, j + 1, item_j)
 
 
-def open_file_by_ss(fullname: str, timestamp: str) -> bool:
+def open_file_by_ss(fullname: str) -> bool:
     path = getLocals(fullname)
 
     base_dir = get_base_dir(path)

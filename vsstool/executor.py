@@ -7,6 +7,7 @@ from vsstool.util.common import execute_cmd_with_subprocess
 from vsstool.util.common import bytes2str
 from vsstool.util.config import getAbsoluteDir
 import re
+import json
 
 
 class FileOperation(Flag):
@@ -81,6 +82,20 @@ def get_dirs(is_recursion=False):
                 cd(cwd)
 
 
+def get_items(path="$/") -> dict:
+    res = execute_cmd_with_subprocess(f"essharp -l \"{path}\"")
+    if res.returncode == 0:
+        return json.loads(bytes2str(res.stdout[0]))
+    return {}
+
+
+def get_file_status(path) -> dict:
+    res = execute_cmd_with_subprocess(f"essharp -s \"{path}\"")
+    if res.returncode == 0:
+        return json.loads(bytes2str(res.stdout[0]))
+    return {}
+
+
 def dispatch_files_operation(operation: FileOperation, *files_id):
     if operation == FileOperation.CHECK_OUT:
         operate_files("checkout", FilePathContext(list_files), *files_id)
@@ -94,6 +109,7 @@ def dispatch_files_operation(operation: FileOperation, *files_id):
 
 def check(*args):
     pass
+
 
 def operate_files(operation: str, context: FilePathContext, *files_id: int):
 
@@ -187,29 +203,40 @@ def show_id_view(items: List[int]):
 
 def file_filter(files: List[bytes]):
 
-    """这是一段很难看懂的代码， 下次一定干掉"""
-
     vss_files = []
     filename_buffer = ''
+    files_ = {}
+    for i in files:
+        files_[i] = bytes2str(i)
     for i in files:
         if not i.startswith(b"$"):
             f = bytes2str(i)
+            if len(i) == 78 and f.find('.') == -1:
+                filename_buffer += f
+                continue
 
-            if len(f) < 79:
+            if len(i) == 68 and f.find('.') == -1:
+                filename_buffer += (f + " ")
+                continue
+
+            if len(i) < 79:
                 if filename_buffer == '':
                     vss_files.append(f)
-                    continue
                 else:
                     filename_buffer += f
                     vss_files.append(filename_buffer)
                     filename_buffer = ''
-                    continue
-            if len(f) == 79:
+                continue
+
+            if len(i) == 79:
                 if is_exist(f):
                     vss_files.append(f)
-                    continue
                 else:
                     filename_buffer += f
+
+            if f == filename_buffer:
+                continue
+
             if filename_buffer.find('.') >= 0:
                 vss_files.append(filename_buffer)
                 filename_buffer = ''
@@ -228,34 +255,41 @@ def get_staged_files():
     return staged_files
 
 
-def get_file_properties(filepath: str):
+def get_file_properties(filepath: str, callback=None, item=None, row=-1, context=None, dirs_count=-1):
     vss_res = execute_cmd_with_subprocess(f"ss properties \"{filepath}\"")
     vss_prot = parse_file_properties(vss_res.stdout[1:])
     keys = [i for i in vss_prot.keys()]
     latest = vss_prot.get(keys[FileProperty.LATEST])
     latest_keys = [i for i in latest.keys()]
-    return [
+    res = [
         vss_prot.get(keys[FileProperty.FILE]),
         latest.get(latest_keys[FileLatest.DATE]),
         "file",
         latest.get(latest_keys[FileLatest.VERSION]),
         vss_prot.get(keys[FileProperty.SIZE]),
     ]
+    if not callback:
+        return res
+    callback(res, item, row, context, dirs_count)
 
 
-def get_dir_properties(dirpath: str):
+def get_dir_properties(dirpath: str, callback=None, item=None, row=-1, context=None):
     vss_res = execute_cmd_with_subprocess(f"ss properties {dirpath}")
     vss_prot = parse_dir_properties(vss_res.stdout[1:])
     keys = [i for i in vss_prot.keys()]
     latest = vss_prot.get(keys[DirProperty.LATEST])
     latest_keys = [i for i in latest.keys()]
-    return [
+    res = [
         vss_prot.get(keys[DirProperty.PROJECT]),
         latest.get(latest_keys[DirLatest.DATE]),
         "project",
         latest.get(latest_keys[DirLatest.VERSION]),
         vss_prot.get(keys[DirProperty.CONTENT])
     ]
+
+    if not callback:
+        return res
+    callback(res, item, row, context)
 
 
 def parse_file_status(path="$/"):
@@ -284,6 +318,7 @@ def parse_file_properties(info: List[str]) -> dict:
             sub_dict = rtval.get([i for i in rtval.keys()][-1])
             sub_dict[info_line[:match.span()[0]].strip()] = info_line[match.span()[1]:].strip()
     return rtval
+
 
 def parse_dir_properties(info: List[str]) -> dict:
     rtval = {}

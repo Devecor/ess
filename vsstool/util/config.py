@@ -19,7 +19,7 @@ class UsersConfig(object):
 
     def __initialize(self, ssdir=get_env("SSDIR"), user=get_user()):
 
-        '''读取users.txt文件, 取得用户配置目录'''
+        """读取users.txt文件, 取得用户配置目录"""
 
         self.__ssdir = ssdir if ssdir[-1] == '\\' else ssdir + '\\'
         self.__user_name = user
@@ -96,11 +96,5 @@ def getAbsoluteDir():
     return "$/" + cwd.replace("\\", "/")
 
 
-def absolute2relative(abs: str):
-    pwd = getAbsoluteDir()
-    if pwd == abs[:len(pwd)]:
-        return abs[len(pwd) + 1:]
-    else:
-        logging.info("abs: " + abs)
-        logging.debug("pwd: " + pwd)
-        raise RuntimeError("inner error")
+def getLocals(fullname: str):
+    return UsersConfig().root + "\\".join(fullname[1:].split("/"))

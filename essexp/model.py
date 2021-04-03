@@ -221,6 +221,6 @@ class EssStandardItem(QStandardItem):
 
     @ss_type.setter
     def ss_type(self, t: str):
-        if t != "file" and t != "dir":
+        if t != "file" and t != "project":
             return
         self.__ss_type = t

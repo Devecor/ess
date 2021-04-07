@@ -58,6 +58,8 @@ def update_item_data(context: ItemSettingContext):
             if items[d]["ischeckout"]:
                 set_icon(item_i, u":/checkout/checkoutline02.svg")
                 props[-1] = get_base_dir(items[d]["local_space"])
+            else:
+                set_icon(item_i, u":/file/file.svg")
         context.set(i, 0, item_i)
 
         for j, prop in enumerate(props):

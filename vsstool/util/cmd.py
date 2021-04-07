@@ -11,7 +11,7 @@ def mkdir(dir: str):
         return
 
     print("mkdir " + dir)
-    os.mkdir(dir)
+    os.makedirs(dir)
 
 
 def cd(dir: str):

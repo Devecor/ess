@@ -13,7 +13,7 @@ class TriggerMenu(QMenu):
     def enable_slots(self, **kwargs):
         logging.debug(kwargs)
         for i in kwargs.keys():
-            self.addAction(i).triggered.connect(kwargs[i])
+            self.addAction(i.replace("_", " ")).triggered.connect(kwargs[i])
 
     @property
     def item(self):

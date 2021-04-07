@@ -19,7 +19,7 @@ class Ui_exp(object):
         if not exp.objectName():
             exp.setObjectName(u"exp")
         exp.setWindowModality(Qt.NonModal)
-        exp.resize(800, 600)
+        exp.resize(1200, 900)
         sizePolicy = QSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -142,13 +142,52 @@ class Ui_exp(object):
 
         self.verticalLayout.addWidget(self.titlebar)
 
-        self.fileTreeView = QTreeView(self.centralwidget)
-        self.fileTreeView.setObjectName(u"fileTreeView")
-        sizePolicy2 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        self.farea = QFrame(self.centralwidget)
+        self.farea.setObjectName(u"farea")
+        self.farea.setMaximumSize(QSize(16777215, 30))
+        self.horizontalLayout_3 = QHBoxLayout(self.farea)
+        self.horizontalLayout_3.setSpacing(0)
+        self.horizontalLayout_3.setObjectName(u"horizontalLayout_3")
+        self.horizontalLayout_3.setContentsMargins(9, 0, 9, 0)
+        self.lb_cpath = QLabel(self.farea)
+        self.lb_cpath.setObjectName(u"lb_cpath")
+        sizePolicy2 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
         sizePolicy2.setHorizontalStretch(0)
         sizePolicy2.setVerticalStretch(0)
-        sizePolicy2.setHeightForWidth(self.fileTreeView.sizePolicy().hasHeightForWidth())
-        self.fileTreeView.setSizePolicy(sizePolicy2)
+        sizePolicy2.setHeightForWidth(self.lb_cpath.sizePolicy().hasHeightForWidth())
+        self.lb_cpath.setSizePolicy(sizePolicy2)
+        self.lb_cpath.setMaximumSize(QSize(16777215, 30))
+
+        self.horizontalLayout_3.addWidget(self.lb_cpath)
+
+        self.bt_copy = QPushButton(self.farea)
+        self.bt_copy.setObjectName(u"bt_copy")
+        sizePolicy3 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        sizePolicy3.setHorizontalStretch(0)
+        sizePolicy3.setVerticalStretch(0)
+        sizePolicy3.setHeightForWidth(self.bt_copy.sizePolicy().hasHeightForWidth())
+        self.bt_copy.setSizePolicy(sizePolicy3)
+        self.bt_copy.setMaximumSize(QSize(40, 30))
+        self.bt_copy.setCheckable(False)
+
+        self.horizontalLayout_3.addWidget(self.bt_copy)
+
+
+        self.verticalLayout.addWidget(self.farea)
+
+        self.main = QFrame(self.centralwidget)
+        self.main.setObjectName(u"main")
+        self.main.setFrameShape(QFrame.StyledPanel)
+        self.main.setFrameShadow(QFrame.Raised)
+        self.horizontalLayout_2 = QHBoxLayout(self.main)
+        self.horizontalLayout_2.setObjectName(u"horizontalLayout_2")
+        self.fileTreeView = QTreeView(self.main)
+        self.fileTreeView.setObjectName(u"fileTreeView")
+        sizePolicy4 = QSizePolicy(QSizePolicy.Preferred, QSizePolicy.Preferred)
+        sizePolicy4.setHorizontalStretch(0)
+        sizePolicy4.setVerticalStretch(0)
+        sizePolicy4.setHeightForWidth(self.fileTreeView.sizePolicy().hasHeightForWidth())
+        self.fileTreeView.setSizePolicy(sizePolicy4)
         self.fileTreeView.setMinimumSize(QSize(0, 256))
         self.fileTreeView.setContextMenuPolicy(Qt.CustomContextMenu)
         self.fileTreeView.setTextElideMode(Qt.ElideRight)
@@ -159,12 +198,30 @@ class Ui_exp(object):
         self.fileTreeView.header().setCascadingSectionResizes(True)
         self.fileTreeView.header().setDefaultSectionSize(60)
 
-        self.verticalLayout.addWidget(self.fileTreeView)
+        self.horizontalLayout_2.addWidget(self.fileTreeView)
+
+        self.tabWidget = QTabWidget(self.main)
+        self.tabWidget.setObjectName(u"tabWidget")
+        self.tabWidget.setMaximumSize(QSize(200, 16777215))
+        self.selections = QWidget()
+        self.selections.setObjectName(u"selections")
+        self.tabWidget.addTab(self.selections, "")
+        self.staged = QWidget()
+        self.staged.setObjectName(u"staged")
+        self.tabWidget.addTab(self.staged, "")
+
+        self.horizontalLayout_2.addWidget(self.tabWidget)
+
+
+        self.verticalLayout.addWidget(self.main)
 
         exp.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(exp)
         self.bt_close.clicked.connect(exp.close)
+
+        self.tabWidget.setCurrentIndex(0)
+
 
         QMetaObject.connectSlotsByName(exp)
     # setupUi
@@ -176,5 +233,9 @@ class Ui_exp(object):
         self.bt_minimize.setText("")
         self.bt_maximize.setText("")
         self.bt_close.setText("")
+        self.lb_cpath.setText(QCoreApplication.translate("exp", u"current path", None))
+        self.bt_copy.setText(QCoreApplication.translate("exp", u"copy", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.selections), QCoreApplication.translate("exp", u"selections", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.staged), QCoreApplication.translate("exp", u"staged", None))
     # retranslateUi
 

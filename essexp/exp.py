@@ -3,10 +3,11 @@ from enum import Flag, auto
 from PySide6 import QtGui
 from PySide6.QtCore import QPointF, QSize, QPoint
 from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
-from PySide6.QtGui import QMouseEvent, QCursor, QIcon, QStandardItemModel
+from PySide6.QtGui import QCursor, QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
 
-from vsstool.util.common import get_base_dir
+from vsstool.util.cmd import mkdir
+from vsstool.util.common import get_base_dir, is_exist, open_file
 from vsstool import executor
 
 from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon
@@ -18,6 +19,8 @@ from essexp.model import ItemSettingContext, EssStandardItem, EssModelIndex
 
 import sys
 import logging
+
+from vsstool.util.config import getLocals
 
 
 class ResizeType(Flag):
@@ -47,6 +50,11 @@ class InputDialog(QDialog, Ui_inputDialog):
     def __init__(self, ):
         super(InputDialog, self).__init__()
         self.setupUi(self)
+        self.option = "rejected"
+        self.buttonBox.accepted.connect(self.set_accept)
+
+    def set_accept(self) -> None:
+        self.option = "accepted"
 
 
 class Exp(Ui_exp, QMainWindow):
@@ -71,19 +79,19 @@ class Exp(Ui_exp, QMainWindow):
         self.resize_t = ResizeType.EITHER
 
         self.bt_close.clicked.connect(self.close)
+        self.bt_copy.clicked.connect(self.on_copy_button_clicked)
+
         self.bt_maximize.clicked.connect(self.on_bt_maximize_clicked)
         self.bt_minimize.clicked.connect(self.showMinimized)
+
         self.fileTreeView.doubleClicked.connect(self.on_item_double_clicked)
+        self.fileTreeView.clicked.connect(self.on_item_clicked)
         self.fileTreeView.edit = self.edit
         self.fileTreeView.customContextMenuRequested.connect(self.on_item_triggered)
 
+        self.lb_cpath.setText("$/")
+
     def edit(self, index, trigger, event) -> bool:
-        logging.debug("self.edit")
-        logging.debug({
-            "index": index,
-            "trigger": trigger,
-            "event": event
-        })
         return False
 
     def on_bt_maximize_clicked(self):
@@ -138,6 +146,17 @@ class Exp(Ui_exp, QMainWindow):
             fullname = item.accessibleText()
             open_file_by_ss(fullname)
 
+    def on_item_clicked(self, index: EssModelIndex):
+        item = get_item_by_index(index, self.__ess_file_model)
+        if item.ss_type == "project":
+            self.lb_cpath.setText(item.accessibleText())
+        elif item.ss_type == "file":
+            self.lb_cpath.setText(item.accessibleText())
+
+    def on_copy_button_clicked(self):
+        import pyperclip
+        pyperclip.copy(self.lb_cpath.text())
+
     def on_item_triggered(self, pos: QPoint):
         index = self.fileTreeView.indexAt(pos)
         if index == EssModelIndex():
@@ -145,14 +164,15 @@ class Exp(Ui_exp, QMainWindow):
         item = get_item_by_index(index.sibling(index.row(), 0), self.__ess_file_model)
         self.__trigger_menu = TriggerMenu(self, item)
         if item.ss_type == "project":
-            self.__trigger_menu.enable_slots(openfolder=self.open_in_folder,
-                                             rename=self.rename,)
+            self.__trigger_menu.enable_slots(open_in_folder=self.open_in_folder,
+                                             rename=self.rename, )
         elif item.ss_type == "file":
-            self.__trigger_menu.enable_slots(openfolder=self.open_in_folder,
+            self.__trigger_menu.enable_slots(open_in_folder=self.open_in_folder,
+                                             edit=self.try_edit,
                                              checkout=self.try_checkout,
                                              checkin=self.try_checkin,
                                              uncheckout=self.try_uncheckout,
-                                             rename=self.rename,)
+                                             rename=self.rename, )
         else:
             raise RuntimeError()
         self.__trigger_menu.move(QtGui.QCursor().pos())
@@ -171,11 +191,12 @@ class Exp(Ui_exp, QMainWindow):
             fold_col = parent.child(item.row(), ITEM_PROPERTIES.index("checkout folder"))
         name_col.setText(stat["version_info"]["user_name"])
         date_col.setText(stat["version_info"]["date"])
-        fold_col.setText(get_base_dir(stat["checkout_folder"]))
         if stat["ischeckout"]:
-            set_icon(item, u":/file/file.svg")
-        else:
             set_icon(item, u":/checkout/checkoutline02.svg")
+            fold_col.setText(get_base_dir(stat["checkout_folder"]))
+        else:
+            fold_col.setText("")
+            set_icon(item, u":/file/file.svg")
 
     def try_checkout(self):
         item = self.__trigger_menu.item
@@ -187,6 +208,11 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.exec_()
             return
         self.__update_file_status(item)
+
+    def try_edit(self):
+        self.try_checkout()
+        item = self.__trigger_menu.item
+        open_file_by_ss(item.accessibleText())
 
     def try_checkin(self):
         item = self.__trigger_menu.item
@@ -213,26 +239,33 @@ class Exp(Ui_exp, QMainWindow):
     def rename(self):
         item = self.__trigger_menu.item
         input_dialog = InputDialog()
-        input_dialog.le_input.setPlaceholderText("filename")
+        input_dialog.le_input.setText(item.text())
         input_dialog.show()
         input_dialog.exec_()
+
+        if input_dialog.option == "rejected" or input_dialog.le_input.text() == "":
+            return
+        name = get_base_dir(item.accessibleText()[:-1]) + "/" + input_dialog.le_input.text()
         res = executor.execute_cmd_with_subprocess(
-            f"ss rename \"{item.accessibleText()}\" \"{input_dialog.le_input.text()}\"")
+            f"ss rename \"{item.accessibleText()}\" \"{name}\"")
         if res.returncode != 0:
             info_dialog = InfoDialog()
             info_dialog.textLabel.setText("重命名失败")
             info_dialog.show()
             info_dialog.exec_()
         else:
-            item_base_dirs = item.accessibleText().split("/")[:-1]
-            item_base_dirs.append(input_dialog.le_input.text())
-            item.setAccessibleText("/".join(item_base_dirs))
+            item.setAccessibleText(name)
             item.setText(input_dialog.le_input.text())
-            self.__update_file_status(item)
+            if item.ss_type == "file":
+                self.__update_file_status(item)
 
     def open_in_folder(self):
         item = self.__trigger_menu.item
-        open_file_by_ss(get_base_dir(item.accessibleText()))
+        base_dir = get_base_dir(getLocals(item.accessibleText()))
+
+        if not is_exist(base_dir):
+            mkdir(base_dir)
+        open_file(base_dir)
 
 
 if __name__ == "__main__":

@@ -82,20 +82,6 @@ def get_dirs(is_recursion=False):
                 cd(cwd)
 
 
-def get_items(path="$/") -> dict:
-    res = execute_cmd_with_subprocess(f"essharp -l \"{path}\"")
-    if res.returncode == 0:
-        return json.loads(bytes2str(res.stdout[0]))
-    return {}
-
-
-def get_file_status(path) -> dict:
-    res = execute_cmd_with_subprocess(f"essharp -s \"{path}\"")
-    if res.returncode == 0:
-        return json.loads(bytes2str(res.stdout[0]))
-    return {}
-
-
 def dispatch_files_operation(operation: FileOperation, *files_id):
     if operation == FileOperation.CHECK_OUT:
         operate_files("checkout", FilePathContext(list_files), *files_id)
@@ -105,10 +91,6 @@ def dispatch_files_operation(operation: FileOperation, *files_id):
         operate_files("undocheckout", FilePathContext(list_files), *files_id)
     elif operation == FileOperation.ADD:
         operate_files("add", FilePathContext(get_staged_files), *files_id)
-
-
-def check(*args):
-    pass
 
 
 def operate_files(operation: str, context: FilePathContext, *files_id: int):

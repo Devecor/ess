@@ -15,7 +15,53 @@ namespace ess.midware.essharp
             Db.Open(configfile, user, password);
         }
 
+        private Dictionary<string, object> ItemInfo(VSSItem item)
+        {
+            Dictionary<string, object> props = new Dictionary<string, object>(8);
+            if (item.Type == 0)    // for projects
+            {
+                props.Add("type", "project");
+                props.Add("size", item.Items.Count + " item");
+            }
+            else    // for files
+            {
+                props.Add("type", "file");
+                props.Add("local_space", item.LocalSpec);
+                props.Add("encoding", item.Encoding);
+                props.Add("size", item.Size);
+            }
+            props.Add("version_number", item.VersionNumber);
+            props.Add("deleted", item.Deleted);
+
+            Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
+            versionInfo.Add("user_name", item.VSSVersion.Username);
+            versionInfo.Add("version_number", item.VSSVersion.VersionNumber.ToString());
+            versionInfo.Add("comment", item.VSSVersion.Comment);
+            versionInfo.Add("action", item.VSSVersion.Action);
+            versionInfo.Add("date", item.VSSVersion.Date.ToString());
+            props.Add("version_info", versionInfo);
+
+            return props;
+        }
+
         public string Items(string path = "$/")
+        {
+            VSSItem item = Db.VSSItem[path];
+            Dictionary<string, object> subitems = new Dictionary<string, object>(8);
+            foreach (VSSItem sub in item.Items)
+            {
+                subitems.Add(sub.Name, this.ItemInfo(sub));
+            }
+            return Util.JsonSerialize(subitems);
+        }
+
+        public string ItemDetail(string path = "$/")
+        {
+            VSSItem item = Db.VSSItem[path];
+            return Util.JsonSerialize(this.ItemInfo(item));
+        }
+
+        public string SubNames(string path = "$/")
         {
             VSSItem item = Db.VSSItem[path];
             Dictionary<string, object> subitems = new Dictionary<string, object>(8);
@@ -25,30 +71,38 @@ namespace ess.midware.essharp
                 if (sub.Type == 0)    // for projects
                 {
                     props.Add("type", "project");
-                    props.Add("size", sub.Items.Count + " item");
                 }
                 else    // for files
                 {
                     props.Add("type", "file");
                     props.Add("ischeckout", sub.IsCheckedOut == 0 ? false : true);
-                    props.Add("local_space", sub.LocalSpec);
-                    props.Add("encoding", sub.Encoding);
-                    props.Add("size", sub.Size);
                 }
-                props.Add("version_number", sub.VersionNumber);
-                props.Add("deleted", sub.Deleted);
-
-                Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
-                versionInfo.Add("user_name", sub.VSSVersion.Username);
-                versionInfo.Add("version_number", sub.VSSVersion.VersionNumber.ToString());
-                versionInfo.Add("comment", sub.VSSVersion.Comment);
-                versionInfo.Add("action", sub.VSSVersion.Action);
-                versionInfo.Add("date", sub.VSSVersion.Date.ToString());
-                props.Add("version_info", versionInfo);
 
                 subitems.Add(sub.Name, props);
             }
             return Util.JsonSerialize(subitems);
+        }
+
+        public string FileStatus(string fullname)
+        {
+            VSSItem item = Db.VSSItem[fullname];
+            Dictionary<string, object> status = new Dictionary<string, object>(3);
+
+            status.Add("ischeckout", item.IsCheckedOut == 0 ? false : true);
+            status.Add("encoding", item.Encoding);
+            status.Add("local_space", item.LocalSpec);
+            status.Add("size", item.Size);
+            status.Add("version_number", item.VersionNumber);
+            status.Add("deleted", item.Deleted);
+            Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
+            versionInfo.Add("user_name", item.VSSVersion.Username);
+            versionInfo.Add("version_number", item.VSSVersion.VersionNumber.ToString());
+            versionInfo.Add("comment", item.VSSVersion.Comment);
+            versionInfo.Add("action", item.VSSVersion.Action);
+            versionInfo.Add("date", item.VSSVersion.Date.ToString());
+            status.Add("version_info", versionInfo);
+
+            return Util.JsonSerialize(status);
         }
 
 
@@ -59,6 +113,9 @@ namespace ess.midware.essharp
             cmd_app.Name = "essharp";
             cmd_app.Option("-l | --list", "list subitems", CommandOptionType.SingleValue);
             cmd_app.Option("-s | --status", "item's status", CommandOptionType.SingleValue);
+            cmd_app.Option("-n | --names", "item's names", CommandOptionType.SingleValue);
+            cmd_app.Option("-d | --detail", "item's detail", CommandOptionType.SingleValue);
+            cmd_app.Option("-g | --get", "get files by full name", CommandOptionType.MultipleValue);
 
             cmd_app.HelpOption("-? | -h | --help");
             cmd_app.Execute(args);
@@ -80,16 +137,23 @@ namespace ess.midware.essharp
                         case "status":
                             Current.GetFileStatus(opt.Value());
                             break;
+                        case "names":
+                            Current.GetSubNames(opt.Value());
+                            break;
+                        case "get":
+                            Current.GetFiles(opt.Values[0], opt.Values[1]);
+                            break;
+                        case "detail":
+                            Current.GetItemDetail(opt.Value());
+                            break;
                     }
                 }
             }
         }
 
-        public string List(string fullname)
+        public void List(string fullname)
         {
-            string res = Current.Items(fullname);
-            Console.WriteLine(res);
-            return res;
+            Console.WriteLine(this.Items(fullname));
         }
 
         public void GetFiles(string fullname, string output)
@@ -97,28 +161,19 @@ namespace ess.midware.essharp
             Db.VSSItem[fullname].Get(output);
         }
 
-        public string GetFileStatus(string fullname)
+        public void GetFileStatus(string fullname)
         {
-            VSSItem item = Db.VSSItem[fullname];
-            Dictionary<string, object> status = new Dictionary<string, object>(3);
+            Console.WriteLine(this.FileStatus(fullname));
+        }
 
-            status.Add("ischeckout", item.IsCheckedOut == 0 ? false : true);
-            status.Add("encoding", item.Encoding);
-            status.Add("checkout_folder", item.LocalSpec);
-            status.Add("size", item.Size);
-            status.Add("version_number", item.VersionNumber);
-            status.Add("deleted", item.Deleted);
-            Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
-            versionInfo.Add("user_name", item.VSSVersion.Username);
-            versionInfo.Add("version_number", item.VSSVersion.VersionNumber.ToString());
-            versionInfo.Add("comment", item.VSSVersion.Comment);
-            versionInfo.Add("action", item.VSSVersion.Action);
-            versionInfo.Add("date", item.VSSVersion.Date.ToString());
-            status.Add("version_info", versionInfo);
+        public void GetSubNames(string path = "$/")
+        {
+            Console.WriteLine(this.SubNames(path));
+        }
 
-            string res = Util.JsonSerialize(status);
-            Console.WriteLine(res);
-            return res;
+        public void GetItemDetail(string path = "$/")
+        {
+            Console.WriteLine(this.ItemDetail(path));
         }
     }
 }

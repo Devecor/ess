@@ -1,16 +1,17 @@
 from enum import Flag, auto
 
 from PySide6 import QtGui
-from PySide6.QtCore import QPointF, QSize, QPoint
+from PySide6.QtCore import QSize, QPoint
 from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
-from PySide6.QtGui import QCursor, QIcon, QStandardItemModel
+from PySide6.QtGui import QIcon, QStandardItemModel
 from PySide6.QtCore import Qt
 
 from vsstool.util.cmd import mkdir
 from vsstool.util.common import get_base_dir, is_exist, open_file
 from vsstool import executor
 
-from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon
+from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon, \
+    get_from_essharp
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
 from essexp.pyui.exp_ui import Ui_exp
@@ -104,40 +105,6 @@ class Exp(Ui_exp, QMainWindow):
             icon.addFile(u":/window/jurassic_Window-min.svg", QSize(), QIcon.Normal, QIcon.Off)
         self.bt_maximize.setIcon(icon)
 
-    def update_cursor(self, position: QPointF):
-        if self.is_on_x_edge(position):
-            self.setCursor(QCursor(Qt.CursorShape.SizeHorCursor))
-
-        elif self.is_on_y_edge(position):
-            self.setCursor(QCursor(Qt.CursorShape.SizeVerCursor))
-
-        elif self.is_on_diag(position):
-            self.setCursor(QCursor(Qt.CursorShape.SizeFDiagCursor))
-
-        else:
-            self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
-
-    def is_on_x_edge(self, position: QPointF) -> bool:
-        return position.y() < self.fileTreeView.geometry().bottom() - 5 and \
-               self.fileTreeView.geometry().right() - 5 <= position.x() <= \
-               self.fileTreeView.geometry().right() + 5
-
-    def is_on_y_edge(self, position: QPointF) -> bool:
-        return position.x() < self.fileTreeView.geometry().right() - 5 and \
-               self.fileTreeView.geometry().bottom() - 5 <= position.y() <= \
-               self.fileTreeView.geometry().bottom() + 5
-
-    def is_on_diag(self, position: QPointF) -> bool:
-        return self.fileTreeView.geometry().right() - 5 <= position.x() <= \
-               self.fileTreeView.geometry().right() + 5 and \
-               self.fileTreeView.geometry().bottom() - 5 <= position.y() <= \
-               self.fileTreeView.geometry().bottom() + 5
-
-    def is_move_area(self, position: QPointF) -> bool:
-        if position.x() < self.bt_minimize.x() and position.y() < self.titlebar.geometry().bottom():
-            return True
-        return False
-
     def on_item_double_clicked(self, index: EssModelIndex):
         item = get_item_by_index(index, self.__ess_file_model)
         if item.ss_type == "project":
@@ -180,23 +147,19 @@ class Exp(Ui_exp, QMainWindow):
         self.__trigger_menu.show()
 
     def __update_file_status(self, item: EssStandardItem):
-        stat = executor.get_file_status(item.accessibleText())
+        stat = get_from_essharp(item.accessibleText(), "s")
         parent = item.parent()
         if parent is None:
             name_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("user"))
             date_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("date"))
-            fold_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("checkout folder"))
         else:
             name_col = parent.child(item.row(), ITEM_PROPERTIES.index("user"))
             date_col = parent.child(item.row(), ITEM_PROPERTIES.index("date"))
-            fold_col = parent.child(item.row(), ITEM_PROPERTIES.index("checkout folder"))
         name_col.setText(stat["version_info"]["user_name"])
         date_col.setText(stat["version_info"]["date"])
         if stat["ischeckout"]:
             set_icon(item, u":/checkout/checkoutline02.svg")
-            fold_col.setText(get_base_dir(stat["checkout_folder"]))
         else:
-            fold_col.setText("")
             set_icon(item, u":/file/file.svg")
 
     def try_checkout(self):

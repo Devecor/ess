@@ -2,6 +2,9 @@
   <qresource prefix="logo">
     <file>logo-polymer.svg</file>
   </qresource>
+  <qresource prefix="copy">
+    <file>copy.svg</file>
+  </qresource>
   <qresource prefix="file">
     <file>file.svg</file>
   </qresource>

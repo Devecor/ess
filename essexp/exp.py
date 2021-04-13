@@ -141,6 +141,7 @@ class Exp(Ui_exp, QMainWindow):
     def on_item_double_clicked(self, index: EssModelIndex):
         item = get_item_by_index(index, self.__ess_file_model)
         if item.ss_type == "project":
+            item.removeRows(0, item.rowCount())
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
             fullname = item.accessibleText()

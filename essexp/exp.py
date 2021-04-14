@@ -111,7 +111,11 @@ class Exp(Ui_exp, QMainWindow):
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
             fullname = item.accessibleText()
-            open_file_by_ss(fullname)
+            if not open_file_by_ss(fullname):
+                info_dialog = InfoDialog()
+                info_dialog.textLabel.setText("打开失败")
+                info_dialog.show()
+                info_dialog.exec_()
 
     def on_item_clicked(self, index: EssModelIndex):
         item = get_item_by_index(index, self.__ess_file_model)
@@ -162,7 +166,7 @@ class Exp(Ui_exp, QMainWindow):
         else:
             set_icon(item, u":/file/file.svg")
 
-    def try_checkout(self):
+    def try_checkout(self) -> bool:
         item = self.__trigger_menu.item
         res = executor.execute_cmd_with_subprocess(f"ss checkout \"{item.accessibleText()}\"")
         if res.returncode != 0:
@@ -170,13 +174,19 @@ class Exp(Ui_exp, QMainWindow):
             info_dialog.textLabel.setText("已被签出/签出失败")
             info_dialog.show()
             info_dialog.exec_()
-            return
+            return False
         self.__update_file_status(item)
+        return True
 
     def try_edit(self):
-        self.try_checkout()
+        if not self.try_checkout():
+            return
         item = self.__trigger_menu.item
-        open_file_by_ss(item.accessibleText())
+        if not open_file_by_ss(item.accessibleText()):
+            info_dialog = InfoDialog()
+            info_dialog.textLabel.setText("打开失败")
+            info_dialog.show()
+            info_dialog.exec_()
 
     def try_checkin(self):
         item = self.__trigger_menu.item

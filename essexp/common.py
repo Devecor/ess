@@ -82,12 +82,13 @@ def open_file_by_ss(fullname: str) -> bool:
         mkdir(base_dir)
     cd(base_dir)
 
-    cmd = f"ss get \"{fullname}\""
+    cmd = f"essharp -g \"{fullname}\" -g \"{path}\""
     execute_cmd(cmd)
 
     if is_exist(path):
         open_file(path)
         return True
+    return False
 
 
 def get_from_essharp(path, opt) -> dict:

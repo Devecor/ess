@@ -1,7 +1,7 @@
 import json
 
 from PySide6.QtCore import QSize
-from PySide6.QtGui import QIcon, QStandardItemModel
+from PySide6.QtGui import QIcon, QStandardItemModel, QBrush, QColor
 
 from vsstool.util.cmd import mkdir, cd
 from vsstool.util.common import get_base_dir, is_exist, execute_cmd, open_file, get_file_timestamp, \
@@ -45,6 +45,7 @@ def update_item_data(context: ItemSettingContext):
         else:
             item_i.setAccessibleText(context.text() + d)
             if items[d].get("ischeckout"):
+                item_i.setForeground(QBrush(QColor("red")))
                 set_icon(item_i, u":/checkout/checkoutline02.svg")
             else:
                 set_icon(item_i, u":/file/file.svg")

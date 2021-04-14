@@ -1,9 +1,8 @@
 from enum import Flag, auto
-
 from PySide6 import QtGui
 from PySide6.QtCore import QSize, QPoint
 from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
-from PySide6.QtGui import QIcon, QStandardItemModel
+from PySide6.QtGui import QIcon, QStandardItemModel, QBrush, QColor
 from PySide6.QtCore import Qt
 
 from vsstool.util.cmd import mkdir
@@ -63,7 +62,7 @@ class Exp(Ui_exp, QMainWindow):
     def __init__(self):
         super(Exp, self).__init__()
         self.setupUi(self)
-        self.__start_point = QPoint()
+        self.__last_pos = self.pos()
         self.__trigger_menu = TriggerMenu(self, EssStandardItem())
 
         self.setWindowFlag(Qt.FramelessWindowHint)
@@ -158,6 +157,7 @@ class Exp(Ui_exp, QMainWindow):
         name_col.setText(stat["version_info"]["user_name"])
         date_col.setText(stat["version_info"]["date"])
         if stat["ischeckout"]:
+            item.setForeground(QBrush(QColor("red")))
             set_icon(item, u":/checkout/checkoutline02.svg")
         else:
             set_icon(item, u":/file/file.svg")
@@ -230,6 +230,18 @@ class Exp(Ui_exp, QMainWindow):
         if not is_exist(base_dir):
             mkdir(base_dir)
         open_file(base_dir)
+
+    def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
+        self.__last_pos = event.globalPos()
+
+    def mouseMoveEvent(self, event: QtGui.QMouseEvent) -> None:
+        dx = event.globalX() - self.__last_pos.x()
+        dy = event.globalY() - self.__last_pos.y()
+        self.__last_pos = event.globalPos()
+        self.move(self.x() + dx, self.y() + dy)
+
+    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
+        self.mouseMoveEvent(event)
 
 
 if __name__ == "__main__":

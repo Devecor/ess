@@ -25,6 +25,9 @@ namespace ess.midware.essharp
             }
             else    // for files
             {
+                bool isCheckout = item.IsCheckedOut == 0 ? false : true;
+
+                props.Add("ischeckout", isCheckout);
                 props.Add("type", "file");
                 props.Add("local_space", item.LocalSpec);
                 props.Add("encoding", item.Encoding);
@@ -88,13 +91,16 @@ namespace ess.midware.essharp
             VSSItem item = Db.VSSItem[fullname];
             Dictionary<string, object> status = new Dictionary<string, object>(3);
 
-            status.Add("ischeckout", item.IsCheckedOut == 0 ? false : true);
+            Boolean isCheckout = item.IsCheckedOut == 0 ? false : true;
+
+            status.Add("ischeckout", isCheckout);
             status.Add("encoding", item.Encoding);
             status.Add("local_space", item.LocalSpec);
             status.Add("size", item.Size);
             status.Add("version_number", item.VersionNumber);
             status.Add("deleted", item.Deleted);
-            Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
+
+            Dictionary<string, string> versionInfo = new Dictionary<string, string>(5);
             versionInfo.Add("user_name", item.VSSVersion.Username);
             versionInfo.Add("version_number", item.VSSVersion.VersionNumber.ToString());
             versionInfo.Add("comment", item.VSSVersion.Comment);
@@ -102,7 +108,49 @@ namespace ess.midware.essharp
             versionInfo.Add("date", item.VSSVersion.Date.ToString());
             status.Add("version_info", versionInfo);
 
+            if (isCheckout)
+            {
+                Dictionary<string, string> checkoutInfo = new Dictionary<string, string>(5);
+                int i = 0;
+                foreach (VSSCheckout cho in item.Checkouts)
+                {
+                    if (i == 0)
+                    {
+                        checkoutInfo.Add("user_name", cho.Username);
+                        checkoutInfo.Add("local_spc", cho.LocalSpec);
+                        checkoutInfo.Add("date", cho.Date.ToString());
+                        checkoutInfo.Add("machine", cho.Machine);
+                    }
+                    else
+                    {
+                        Console.WriteLine("devecor: what is the fuck???");
+                        break;
+                    }
+                    i++;
+                }
+                status.Add("checkout_info", checkoutInfo);
+            }
+
             return Util.JsonSerialize(status);
+        }
+
+        public string FileHistory(string fullname)
+        {
+            VSSItem item = Db.VSSItem[fullname];
+            List<Dictionary<string, string>> history = new List<Dictionary<string, string>>(8);
+
+            foreach (IVSSVersion version in item.Versions)
+            {
+                Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
+                versionInfo.Add("user_name", version.Username);
+                versionInfo.Add("version_number", version.VersionNumber.ToString());
+                versionInfo.Add("comment", version.Comment);
+                versionInfo.Add("action", version.Action);
+                versionInfo.Add("date", version.Date.ToString());
+                history.Add(versionInfo);
+            }
+
+            return Util.JsonSerialize(history);
         }
 
 
@@ -115,6 +163,7 @@ namespace ess.midware.essharp
             cmd_app.Option("-s | --status", "item's status", CommandOptionType.SingleValue);
             cmd_app.Option("-n | --names", "item's names", CommandOptionType.SingleValue);
             cmd_app.Option("-d | --detail", "item's detail", CommandOptionType.SingleValue);
+            cmd_app.Option("-i | --history", "item's history", CommandOptionType.SingleValue);
             cmd_app.Option("-g | --get", "get files by full name", CommandOptionType.MultipleValue);
 
             cmd_app.HelpOption("-? | -h | --help");
@@ -146,6 +195,9 @@ namespace ess.midware.essharp
                         case "detail":
                             Current.GetItemDetail(opt.Value());
                             break;
+                        case "history":
+                            Current.GetFileHistory(opt.Value());
+                            break;
                     }
                 }
             }
@@ -158,7 +210,7 @@ namespace ess.midware.essharp
 
         public void GetFiles(string fullname, string output)
         {
-            Db.VSSItem[fullname].Get(output);
+            Db.VSSItem[fullname].Get(output, (int)VSSFlags.VSSFLAG_REPREPLACE);
         }
 
         public void GetFileStatus(string fullname)
@@ -174,6 +226,11 @@ namespace ess.midware.essharp
         public void GetItemDetail(string path = "$/")
         {
             Console.WriteLine(this.ItemDetail(path));
+        }
+
+        public void GetFileHistory(string path = "$/")
+        {
+            Console.WriteLine(this.FileHistory(path));
         }
     }
 }

@@ -466,12 +466,22 @@
           </size>
          </property>
          <property name="currentIndex">
-          <number>0</number>
+          <number>1</number>
          </property>
          <widget class="QWidget" name="selections">
           <attribute name="title">
            <string>selections</string>
           </attribute>
+         </widget>
+         <widget class="QWidget" name="tab">
+          <attribute name="title">
+           <string>history</string>
+          </attribute>
+          <layout class="QVBoxLayout" name="verticalLayout_2">
+           <item>
+            <widget class="QListView" name="lv_history"/>
+           </item>
+          </layout>
          </widget>
          <widget class="QWidget" name="staged">
           <attribute name="title">

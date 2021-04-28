@@ -5,12 +5,15 @@ namespace ess.midware.essharp
 {
     class Util
     {
+        private static JavaScriptSerializer serializer = new JavaScriptSerializer();
         public static string JsonSerialize(Dictionary<string, object> dict)
         {
-
-            JavaScriptSerializer serializer = new JavaScriptSerializer();
-
             return serializer.Serialize(dict);
+        }
+
+        public static string JsonSerialize(List<Dictionary<string, string>> list)
+        {
+            return serializer.Serialize(list);
         }
     }
 }

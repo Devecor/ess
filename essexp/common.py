@@ -38,6 +38,7 @@ def update_item_data(context: ItemSettingContext):
     for i, d in enumerate(items.keys()):
         item_i = EssStandardItem(d)
         item_i.ss_type = items[d].get("type")
+        item_i.ss_cho = items[d].get("ischeckout")
 
         if items[d].get("type") == "project":
             set_icon(item_i, u":/folder/fold.svg")
@@ -66,7 +67,7 @@ def update_item_props(path: str, row, context):
         vss_res["version_info"]["date"],
         vss_res["type"],
         vss_res["version_number"],
-        vss_res["size"],
+        str(vss_res["size"] // 1024) + "KB" if str(vss_res["size"]).isdigit() else vss_res["size"],
         vss_res["version_info"]["user_name"],
     ]
     for j, d in enumerate(props):
@@ -75,17 +76,10 @@ def update_item_props(path: str, row, context):
         context.set(row, j + 1, item_j)
 
 
-def open_file_by_ss(fullname: str) -> bool:
+def open_file_by_ss(fullname: str, override=False) -> bool:
+    if override:
+        get_file(fullname)
     path = getLocals(fullname)
-
-    base_dir = get_base_dir(path)
-    if not is_exist(base_dir):
-        mkdir(base_dir)
-    cd(base_dir)
-
-    cmd = f"essharp -g \"{fullname}\" -g \"{path}\""
-    execute_cmd(cmd)
-
     if is_exist(path):
         open_file(path)
         return True
@@ -97,3 +91,15 @@ def get_from_essharp(path, opt) -> dict:
     if res.returncode == 0:
         return json.loads(bytes2str(res.stdout[0]))
     return {}
+
+
+def get_file(fullname: str):
+    path = getLocals(fullname)
+
+    base_dir = get_base_dir(path)
+    if not is_exist(base_dir):
+        mkdir(base_dir)
+    cd(base_dir)
+
+    cmd = f"essharp -g \"{fullname}\" -g \"{path}\""
+    execute_cmd(cmd)

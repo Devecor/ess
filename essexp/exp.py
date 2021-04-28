@@ -5,12 +5,12 @@ from PySide6.QtWidgets import QMainWindow, QApplication, QStyleFactory, QDialog
 from PySide6.QtGui import QIcon, QStandardItemModel, QBrush, QColor
 from PySide6.QtCore import Qt
 
-from vsstool.util.cmd import mkdir
-from vsstool.util.common import get_base_dir, is_exist, open_file
+from vsstool.util.cmd import mkdir, cd
+from vsstool.util.common import get_base_dir, is_exist, open_file, get_tail, execute_cmd
 from vsstool import executor
 
 from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon, \
-    get_from_essharp
+    get_from_essharp, get_file
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
 from essexp.pyui.exp_ui import Ui_exp
@@ -21,6 +21,7 @@ import sys
 import logging
 
 from vsstool.util.config import getLocals
+import pyperclip
 
 
 class ResizeType(Flag):
@@ -80,6 +81,7 @@ class Exp(Ui_exp, QMainWindow):
 
         self.bt_close.clicked.connect(self.close)
         self.bt_copy.clicked.connect(self.on_copy_button_clicked)
+        self.bt_copy.mouseDoubleClickEvent = self.on_copy_button_double_clicked
 
         self.bt_maximize.clicked.connect(self.on_bt_maximize_clicked)
         self.bt_minimize.clicked.connect(self.showMinimized)
@@ -111,7 +113,12 @@ class Exp(Ui_exp, QMainWindow):
             update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
         elif item.ss_type == "file":
             fullname = item.accessibleText()
-            if not open_file_by_ss(fullname):
+            if item.ss_cho:
+                open_res = open_file_by_ss(fullname, override=False)
+            else:
+                open_res = open_file_by_ss(fullname, override=True)
+
+            if not open_res:
                 info_dialog = InfoDialog()
                 info_dialog.textLabel.setText("打开失败")
                 info_dialog.show()
@@ -123,10 +130,16 @@ class Exp(Ui_exp, QMainWindow):
             self.lb_cpath.setText(item.accessibleText())
         elif item.ss_type == "file":
             self.lb_cpath.setText(item.accessibleText())
+            self.__update_file_status(item)
 
     def on_copy_button_clicked(self):
-        import pyperclip
         pyperclip.copy(self.lb_cpath.text())
+
+    def on_copy_button_double_clicked(self, event):
+        name = self.lb_cpath.text()
+        if name.endswith("/"):
+            name = name[:-1]
+        pyperclip.copy(get_tail(name))
 
     def on_item_triggered(self, pos: QPoint):
         index = self.fileTreeView.indexAt(pos)
@@ -158,12 +171,16 @@ class Exp(Ui_exp, QMainWindow):
         else:
             name_col = parent.child(item.row(), ITEM_PROPERTIES.index("user"))
             date_col = parent.child(item.row(), ITEM_PROPERTIES.index("date"))
-        name_col.setText(stat["version_info"]["user_name"])
-        date_col.setText(stat["version_info"]["date"])
+
         if stat["ischeckout"]:
+            name_col.setText(stat["checkout_info"]["user_name"])
+            date_col.setText(stat["checkout_info"]["date"])
             item.setForeground(QBrush(QColor("red")))
             set_icon(item, u":/checkout/checkoutline02.svg")
         else:
+            name_col.setText(stat["version_info"]["user_name"])
+            date_col.setText(stat["version_info"]["date"])
+            item.setForeground(QBrush(QColor("black")))
             set_icon(item, u":/file/file.svg")
 
     def try_checkout(self) -> bool:
@@ -182,7 +199,7 @@ class Exp(Ui_exp, QMainWindow):
         if not self.try_checkout():
             return
         item = self.__trigger_menu.item
-        if not open_file_by_ss(item.accessibleText()):
+        if not open_file_by_ss(item.accessibleText(), override=True):
             info_dialog = InfoDialog()
             info_dialog.textLabel.setText("打开失败")
             info_dialog.show()
@@ -201,7 +218,8 @@ class Exp(Ui_exp, QMainWindow):
 
     def try_uncheckout(self):
         item = self.__trigger_menu.item
-        res = executor.execute_cmd_with_subprocess(f"ss undocheckout \"{item.accessibleText()}\"")
+        get_file(item.accessibleText())
+        res = executor.execute_cmd_with_subprocess(f"ss undocheckout \"{item.accessibleText()}\" -i-")
         if res.returncode != 0:
             info_dialog = InfoDialog()
             info_dialog.textLabel.setText("取消签出失败")
@@ -235,10 +253,16 @@ class Exp(Ui_exp, QMainWindow):
 
     def open_in_folder(self):
         item = self.__trigger_menu.item
-        base_dir = get_base_dir(getLocals(item.accessibleText()))
+        local = getLocals(item.accessibleText())
+        base_dir = get_base_dir(local)
 
         if not is_exist(base_dir):
             mkdir(base_dir)
+        cd(base_dir)
+        if item.ss_type == 'file':
+            if not is_exist(local):
+                get_file(item.accessibleText())
+
         open_file(base_dir)
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
@@ -249,9 +273,6 @@ class Exp(Ui_exp, QMainWindow):
         dy = event.globalY() - self.__last_pos.y()
         self.__last_pos = event.globalPos()
         self.move(self.x() + dx, self.y() + dy)
-
-    def mouseReleaseEvent(self, event: QtGui.QMouseEvent) -> None:
-        self.mouseMoveEvent(event)
 
 
 if __name__ == "__main__":

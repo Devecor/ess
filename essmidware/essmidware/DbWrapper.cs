@@ -35,6 +35,7 @@ namespace ess.midware.essharp
             }
             props.Add("version_number", item.VersionNumber);
             props.Add("deleted", item.Deleted);
+            props.Add("spec", item.Spec);
 
             Dictionary<string, string> versionInfo = new Dictionary<string, string>(4);
             versionInfo.Add("user_name", item.VSSVersion.Username);
@@ -71,6 +72,7 @@ namespace ess.midware.essharp
             foreach (VSSItem sub in item.Items)
             {
                 Dictionary<string, object> props = new Dictionary<string, object>(8);
+                props.Add("spec", sub.Spec);
                 if (sub.Type == 0)    // for projects
                 {
                     props.Add("type", "project");

@@ -6,11 +6,11 @@ from PySide6.QtGui import QIcon, QStandardItemModel, QBrush, QColor
 from PySide6.QtCore import Qt
 
 from vsstool.util.cmd import mkdir, cd
-from vsstool.util.common import get_base_dir, is_exist, open_file, get_tail, execute_cmd
+from vsstool.util.common import get_base_dir, is_exist, open_file, get_tail
 from vsstool import executor
 
 from essexp.common import get_item_by_index, ITEM_PROPERTIES, update_item_data, open_file_by_ss, set_icon, \
-    get_from_essharp, get_file
+    get_from_essharp, get_file, update_item_data_on_error
 from essexp.pyui.info_dialog import Ui_infoDialog
 from essexp.pyui.input_dialog import Ui_inputDialog
 from essexp.pyui.exp_ui import Ui_exp
@@ -65,6 +65,7 @@ class Exp(Ui_exp, QMainWindow):
         self.setupUi(self)
         self.__last_pos = self.pos()
         self.__trigger_menu = TriggerMenu(self, EssStandardItem())
+        self.__cur_parent = EssStandardItem()
 
         self.setWindowFlag(Qt.FramelessWindowHint)
 
@@ -94,6 +95,7 @@ class Exp(Ui_exp, QMainWindow):
         self.lb_cpath.setText("$/")
 
     def edit(self, index, trigger, event) -> bool:
+        """禁止edit"""
         return False
 
     def on_bt_maximize_clicked(self):
@@ -106,11 +108,17 @@ class Exp(Ui_exp, QMainWindow):
             icon.addFile(u":/window/jurassic_Window-min.svg", QSize(), QIcon.Normal, QIcon.Off)
         self.bt_maximize.setIcon(icon)
 
+    def on_error(self):
+        self.__cur_parent.removeRows(0, self.__cur_parent.rowCount())
+        update_item_data_on_error(ItemSettingContext(self.__cur_parent.accessibleText(),
+                                                     self.__cur_parent.setChild))
+
     def on_item_double_clicked(self, index: EssModelIndex):
         item = get_item_by_index(index, self.__ess_file_model)
+        self.__cur_parent = item
         if item.ss_type == "project":
             item.removeRows(0, item.rowCount())
-            update_item_data(ItemSettingContext(item.accessibleText(), item.setChild))
+            update_item_data(ItemSettingContext(item.accessibleText(), item.setChild, self.on_error))
         elif item.ss_type == "file":
             fullname = item.accessibleText()
             if item.ss_cho:
@@ -164,6 +172,9 @@ class Exp(Ui_exp, QMainWindow):
 
     def __update_file_status(self, item: EssStandardItem):
         stat = get_from_essharp(item.accessibleText(), "s")
+        if not len(stat):
+            logging.error("get_from_essharp fail: " + item.accessibleText())
+            return
         parent = item.parent()
         if parent is None:
             name_col = self.__ess_file_model.item(item.row(), ITEM_PROPERTIES.index("user"))
@@ -254,7 +265,10 @@ class Exp(Ui_exp, QMainWindow):
     def open_in_folder(self):
         item = self.__trigger_menu.item
         local = getLocals(item.accessibleText())
-        base_dir = get_base_dir(local)
+        if item.ss_type == 'project':
+            base_dir = local
+        else:
+            base_dir = get_base_dir(local)
 
         if not is_exist(base_dir):
             mkdir(base_dir)
@@ -264,6 +278,8 @@ class Exp(Ui_exp, QMainWindow):
                 get_file(item.accessibleText())
 
         open_file(base_dir)
+        if item.ss_type == 'project':
+            open_file('cmd')
 
     def mousePressEvent(self, event: QtGui.QMouseEvent) -> None:
         self.__last_pos = event.globalPos()

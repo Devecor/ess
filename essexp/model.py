@@ -89,15 +89,20 @@ class TreeModel(QStandardItemModel):
 
 
 class ItemSettingContext(object):
-    def __init__(self, origin: str, setter: typing.Callable):
+    def __init__(self, origin: str, setter: typing.Callable, callback=None):
         self.__f = setter
         self.__origin = origin
+        self.__on_error = callback
 
     def set(self, row: int, col: int, item: QStandardItem):
         self.__f(row, col, item)
 
     def text(self):
         return self.__origin
+
+    def on_error(self):
+        if self.__on_error:
+            self.__on_error()
 
 
 class EssFileModel(QAbstractItemModel):
